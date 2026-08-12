@@ -1,0 +1,24 @@
+services:
+  app:
+    build: .
+    image: geo-encyclopedia:latest
+    container_name: geo-encyclopedia
+    restart: always
+    # 仅监听本机回环，外网访问走穿透链路（绿联远程访问 / Cloudflare Tunnel）
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      PORT: "3000"
+    volumes:
+      - ./data:/app/data
+      - ./content:/app/content
+      - ./.env:/app/.env:ro
+
+  # 备用外网链路: Cloudflare Tunnel（需要 .env 里配置 TUNNEL_TOKEN）
+  # 用法: docker compose --profile tunnel up -d
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: geo-encyclopedia-tunnel
+    restart: always
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN:-}
+    profiles: ["tunnel"]

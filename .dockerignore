@@ -1,0 +1,13 @@
+node_modules/
+web/dist/
+server/data/
+data/
+backups/
+.env
+*.log
+.git/
+docs/
+server/smoke-test.cjs
+server/smoke-static.cjs
+server/out.log
+server/err.log

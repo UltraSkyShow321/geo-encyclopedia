@@ -1,0 +1,14 @@
+{
+  "name": "geo-encyclopedia",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev:server": "npm --prefix server run dev",
+    "dev:web": "npm --prefix web run dev",
+    "build": "npm --prefix web run build",
+    "start": "npm --prefix server start",
+    "fetch:data": "node tools/fetch-country-data.mjs",
+    "generate:content": "node --env-file-if-exists=.env tools/generate-content.mjs",
+    "icons": "node tools/make-icons.mjs"
+  }
+}
