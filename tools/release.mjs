@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const token = fs.readFileSync(process.argv[2], 'utf8').trim();
+const token = fs.readFileSync(process.argv[2], 'utf8').trim().split(/\r?\n/)[0].trim();
 const owner = 'UltraSkyShow321';
 const repo = 'geo-encyclopedia';
 const API = 'https://api.github.com';

@@ -93,14 +93,11 @@ export function setApiBase(url: string) {
   localStorage.setItem('geo-server', url.replace(/\/+$/, ''));
 }
 
-/** 资源地址：桌面端/网页端用相对路径，移动端(Capacitor)拼服务器地址 */
+/** 资源地址：移动端(Capacitor)拼服务器地址；网页端与桌面端(本地代理根路径)用绝对路径 */
 export function assetUrl(p: string): string {
-  if (isNativeEnv() && typeof location !== 'undefined' && /^https?:$/.test(location.protocol)) {
-    return p.replace(/^\//, '');
-  }
   const base = apiBase();
   if (isNativeEnv() && base) return base + p;
-  return p.replace(/^\//, '');
+  return p;
 }
 
 /** 原生桌面端：把服务器地址通知本地代理（同源转发 /api） */
