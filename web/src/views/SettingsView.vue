@@ -50,6 +50,17 @@ onMounted(() => {
 
     <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 space-y-3">
       <p class="text-sm text-slate-500">{{ t('settings.hint') }}</p>
+      <div class="flex flex-wrap gap-2">
+        <button class="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700" @click="url = 'http://127.0.0.1:3000'">
+          💻 本机 http://127.0.0.1:3000
+        </button>
+        <button class="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700" @click="url = 'http://192.168.1.100:3000'">
+          🖥️ 局域网 NAS（示例）
+        </button>
+        <button class="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700" @click="url = 'https://你的域名或绿联穿透地址'">
+          🌐 外网地址（示例）
+        </button>
+      </div>
       <label class="block">
         <span class="text-sm font-medium">{{ t('settings.serverUrl') }}</span>
         <input
