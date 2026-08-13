@@ -7,3 +7,10 @@ server/data/
 backups/
 logs/
 .DS_Store
+apps/desktop/web/
+apps/desktop/dist/
+apps/mobile/android/.gradle/
+apps/mobile/android/app/build/
+apps/mobile/android/build/
+apps/mobile/android/local.properties
+apps/mobile/keystore/
