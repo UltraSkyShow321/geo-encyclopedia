@@ -31,6 +31,16 @@ function resolveWebDist() {
 
 const app = Fastify({ logger: true, trustProxy: true });
 
+// CORS：允许跨域访问（桌面端本地代理同源转发；此配置方便网页端设置页跨域测试）
+app.addHook('onRequest', async (req, reply) => {
+  reply.header('access-control-allow-origin', '*');
+  reply.header('access-control-allow-methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  reply.header('access-control-allow-headers', 'content-type');
+  if (req.method === 'OPTIONS') {
+    reply.code(204).send();
+  }
+});
+
 app.addHook('onRequest', async (req) => {
   req.authed = isAuthed(req);
 });

@@ -103,17 +103,24 @@ function loadAmapScript(key: string): Promise<void> {
   });
 }
 
+const amapNotice = ref('');
+
+function showAmapNotice(msg: string) {
+  amapNotice.value = msg;
+  window.setTimeout(() => { if (amapNotice.value === msg) amapNotice.value = ''; }, 6000);
+}
+
 async function activateAmap() {
   const key = await ensureAmapKey();
   if (!key) {
-    alert('未配置高德地图 Key：请在 .env 填写 AMAP_KEY（lbs.amap.com 免费注册），并重启后端服务');
+    showAmapNotice('未配置高德地图 Key：请在 .env 填写 AMAP_KEY（lbs.amap.com 免费注册）并重启后端服务');
     basemap.value = 'boundaries';
     return;
   }
   try {
     await loadAmapScript(key);
   } catch (e: any) {
-    alert(`高德地图加载失败：${e.message}\n\n检查：\n1. AMAP_KEY 是否正确\n2. 是否已填写 AMAP_SECURITY_CODE（安全密钥 jscode）\n3. 改完 .env 后是否重启了后端服务\n4. 高德控制台 Key 状态是否为"已启用"`);
+    showAmapNotice(`高德地图加载失败：${e.message}（检查 AMAP_KEY / AMAP_SECURITY_CODE 是否配置、后端是否重启）`);
     basemap.value = 'boundaries';
     return;
   }
@@ -341,6 +348,10 @@ defineExpose({ focusCountry });
       >
         {{ l.label }}
       </button>
+    </div>
+
+    <div v-if="amapNotice" class="absolute top-12 right-2 z-[600] max-w-xs rounded-lg bg-amber-50 dark:bg-amber-900/40 border border-amber-300 dark:border-amber-700 px-3 py-2 text-xs text-amber-800 dark:text-amber-200 shadow">
+      {{ amapNotice }}
     </div>
 
     <div class="absolute bottom-6 right-2 z-[500] text-[11px] px-2 py-1 rounded bg-slate-900/70 text-slate-100 pointer-events-none">

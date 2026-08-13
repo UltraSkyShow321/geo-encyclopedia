@@ -15,7 +15,7 @@
   "build": {
     "appId": "com.geoencyclopedia.desktop",
     "productName": "世界地理百科",
-    "files": ["main.cjs", "preload.cjs", "web/**/*"],
+    "files": ["main.cjs", "preload.cjs", "proxy.cjs", "web/**/*"],
     "directories": {
       "output": "dist"
     },

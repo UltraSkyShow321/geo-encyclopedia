@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { api, apiBase, isNativeEnv, setApiBase } from '../api';
+import { api, apiBase, isNativeEnv, notifyNativeProxy, setApiBase } from '../api';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -23,6 +23,14 @@ async function test() {
   try {
     const ctrl = new AbortController();
     setTimeout(() => ctrl.abort(), 8000);
+    // 桌面端：先通知本地代理，再走同源 /api 测试；网页端：直接请求目标站点
+    if (isNativeEnv() && /^https?:$/.test(location.protocol)) {
+      await notifyNativeProxy(target);
+      const res = await fetch('/api/meta', { signal: ctrl.signal });
+      if (!res.ok) throw new Error(String(res.status));
+      status.value = 'ok';
+      return;
+    }
     const res = await fetch(`${target}/api/meta`, { signal: ctrl.signal });
     if (!res.ok) throw new Error(String(res.status));
     const meta = await res.json();
@@ -36,6 +44,7 @@ async function test() {
 function save() {
   const target = url.value.trim().replace(/\/+$/, '');
   setApiBase(target);
+  notifyNativeProxy(target);
   if (firstTime.value) router.push('/');
 }
 

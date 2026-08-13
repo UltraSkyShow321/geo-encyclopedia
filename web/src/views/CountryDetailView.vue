@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { api, type CountryDetail } from '../api';
+import { api, assetUrl, type CountryDetail } from '../api';
 import EChart from '../components/EChart.vue';
 import WorldMap from '../components/WorldMap.vue';
 import { formatNumber, formatArea } from '../utils/format';
@@ -24,22 +24,22 @@ const saving = ref(false);
 
 const flagPath = computed(() => {
   const c = country.value;
-  return c?.iso_alpha2 ? `/flags/${c.iso_alpha2.toLowerCase()}.svg` : '';
+  return c?.iso_alpha2 ? assetUrl(`/flags/${c.iso_alpha2.toLowerCase()}.svg`) : '';
 });
 
 const gallery = computed(() => {
   const c = country.value;
   if (!c) return [];
   const items = [
-    { src: `/api/staticmap/${c.slug}?layer=imagery`, label: t('common.imgSatellite') },
-    { src: `/api/staticmap/${c.slug}?layer=terrain`, label: t('common.imgTerrain') },
-    { src: `/api/staticmap/${c.slug}?layer=street`, label: t('common.imgStreet') },
+    { src: assetUrl(`/api/staticmap/${c.slug}?layer=imagery`), label: t('common.imgSatellite') },
+    { src: assetUrl(`/api/staticmap/${c.slug}?layer=terrain`), label: t('common.imgTerrain') },
+    { src: assetUrl(`/api/staticmap/${c.slug}?layer=street`), label: t('common.imgStreet') },
   ];
   if (c.capital_coords && Array.isArray(c.capital_coords) && c.capital_coords.length === 2) {
     const [clat, clng] = c.capital_coords;
     items.push(
-      { src: `/api/staticmap/${c.slug}?layer=imagery&center=${clat},${clng}&span=1.2`, label: t('common.imgCapitalSatellite') },
-      { src: `/api/staticmap/${c.slug}?layer=street&center=${clat},${clng}&span=1.2`, label: t('common.imgCapitalStreet') }
+      { src: assetUrl(`/api/staticmap/${c.slug}?layer=imagery&center=${clat},${clng}&span=1.2`), label: t('common.imgCapitalSatellite') },
+      { src: assetUrl(`/api/staticmap/${c.slug}?layer=street&center=${clat},${clng}&span=1.2`), label: t('common.imgCapitalStreet') }
     );
   }
   return items;
@@ -217,7 +217,7 @@ onMounted(async () => {
       </div>
       <div class="mt-3 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
         <div class="text-xs text-slate-500 mb-2">{{ t('common.imgOutline') }}</div>
-        <img :src="`/api/country-svg/${country.slug}`" :alt="t('common.imgOutline')" loading="lazy" class="w-full max-h-52 object-contain" @error="hideImg" />
+        <img :src="assetUrl(`/api/country-svg/${country.slug}`)" :alt="t('common.imgOutline')" loading="lazy" class="w-full max-h-52 object-contain" @error="hideImg" />
       </div>
     </section>
 

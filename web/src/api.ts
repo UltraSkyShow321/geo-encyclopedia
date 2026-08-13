@@ -83,12 +83,38 @@ export function isNativeEnv(): boolean {
 
 export function apiBase(): string {
   if (!isNativeEnv()) return '';
+  // Electron 桌面端：页面经本地代理以 http 加载，走同源 /api，无需 base
+  if (typeof location !== 'undefined' && /^https?:$/.test(location.protocol)) return '';
   const saved = localStorage.getItem('geo-server');
   return saved ? saved.replace(/\/+$/, '') : '';
 }
 
 export function setApiBase(url: string) {
   localStorage.setItem('geo-server', url.replace(/\/+$/, ''));
+}
+
+/** 资源地址：桌面端/网页端用相对路径，移动端(Capacitor)拼服务器地址 */
+export function assetUrl(p: string): string {
+  if (isNativeEnv() && typeof location !== 'undefined' && /^https?:$/.test(location.protocol)) {
+    return p.replace(/^\//, '');
+  }
+  const base = apiBase();
+  if (isNativeEnv() && base) return base + p;
+  return p.replace(/^\//, '');
+}
+
+/** 原生桌面端：把服务器地址通知本地代理（同源转发 /api） */
+export async function notifyNativeProxy(url: string) {
+  if (!isNativeEnv() || typeof location === 'undefined' || !/^https?:$/.test(location.protocol)) return;
+  try {
+    await fetch('/__geo_server', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
+  } catch {
+    /* 忽略 */
+  }
 }
 
 async function req<T>(url: string, init?: RequestInit): Promise<T> {
