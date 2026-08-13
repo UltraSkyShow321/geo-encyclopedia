@@ -1,4 +1,4 @@
-# 世界地理百科全书 (Geo-Encyclopedia)
+﻿# 世界地理百科全书 (Geo-Encyclopedia)
 
 个人学习用的世界地理百科网站：国家档案、自然地理/人文地理专题、互动地图、数据图表、小测验与记忆卡片。
 部署于家庭 NAS（绿联 UGOS Pro / Docker），通过 **绿联远程访问**（主）与 **Cloudflare Tunnel**（备）对外提供服务。
@@ -53,7 +53,7 @@ docker compose up -d --build  # http://127.0.0.1:3000
 - 学习功能：单用户登录、收藏 + 笔记、地理小测验、记忆卡片（间隔重复）
 - 深色模式、中英双语界面、PWA（手机可安装、离线看缓存）
 
-## 目录结构
+## 绿联 NAS 部署（推荐，长期稳定运行）\n\n完整图文步骤见 [docs/DEPLOY-NAS.md](docs/DEPLOY-NAS.md)：拷贝项目 → 建 .env → Compose 启动 → 多端连接 → 外网访问 → 备份。\n\n## 目录结构
 
 ```
 geo-encyclopedia/
