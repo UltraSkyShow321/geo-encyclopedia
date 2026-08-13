@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
@@ -21,6 +21,40 @@ const isFav = ref(false);
 const note = ref('');
 const noteSaved = ref(false);
 const saving = ref(false);
+
+const flagPath = computed(() => {
+  const c = country.value;
+  return c?.iso_alpha2 ? `/flags/${c.iso_alpha2.toLowerCase()}.svg` : '';
+});
+
+const gallery = computed(() => {
+  const c = country.value;
+  if (!c) return [];
+  const items = [
+    { src: `/api/staticmap/${c.slug}?layer=imagery`, label: t('common.imgSatellite') },
+    { src: `/api/staticmap/${c.slug}?layer=terrain`, label: t('common.imgTerrain') },
+    { src: `/api/staticmap/${c.slug}?layer=street`, label: t('common.imgStreet') },
+  ];
+  if (c.capital_coords && Array.isArray(c.capital_coords) && c.capital_coords.length === 2) {
+    const [clat, clng] = c.capital_coords;
+    items.push(
+      { src: `/api/staticmap/${c.slug}?layer=imagery&center=${clat},${clng}&span=1.2`, label: t('common.imgCapitalSatellite') },
+      { src: `/api/staticmap/${c.slug}?layer=street&center=${clat},${clng}&span=1.2`, label: t('common.imgCapitalStreet') }
+    );
+  }
+  return items;
+});
+
+const videoLinks = computed(() => {
+  const c = country.value;
+  if (!c) return [];
+  const kw = `${c.name_zh} 地理 纪录片`;
+  const kwEn = `${c.name_en} geography documentary`;
+  return [
+    { name: 'Bilibili', icon: '📺', url: `https://search.bilibili.com/all?keyword=${encodeURIComponent(kw)}` },
+    { name: 'YouTube', icon: '▶️', url: `https://www.youtube.com/results?search_query=${encodeURIComponent(kwEn)}` },
+  ];
+});
 
 const fields = computed(() => {
   const c = country.value!;
@@ -85,6 +119,11 @@ async function saveNote() {
   }
 }
 
+function hideImg(e: Event) {
+  const img = e.currentTarget as HTMLImageElement | null;
+  if (img) img.style.display = 'none';
+}
+
 onMounted(async () => {
   try {
     const c = await api.country(String(route.params.slug));
@@ -120,7 +159,10 @@ onMounted(async () => {
     </div>
 
     <section class="flex flex-wrap items-start gap-5">
-      <span class="text-7xl leading-none select-none">{{ country.flag_emoji || '🌐' }}</span>
+      <span class="relative w-28 h-[70px] rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm bg-slate-100 dark:bg-slate-800 shrink-0">
+        <img v-if="flagPath" :src="flagPath" :alt="country.name_en" class="w-full h-full object-cover" @error="hideImg" />
+        <span v-if="!flagPath" class="absolute inset-0 flex items-center justify-center text-5xl">{{ country.flag_emoji || '🌐' }}</span>
+      </span>
       <div class="flex-1 min-w-[220px]">
         <h1 class="text-3xl font-bold">{{ country.name_zh }}</h1>
         <p class="text-slate-500 dark:text-slate-400">{{ country.name_en }}</p>
@@ -166,8 +208,40 @@ onMounted(async () => {
     </section>
 
     <section>
+      <h2 class="text-xl font-semibold mb-3">{{ t('common.gallery') }}</h2>
+      <div class="grid sm:grid-cols-3 gap-3">
+        <div v-for="g in gallery" :key="g.src" class="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+          <img :src="g.src" :alt="g.label" loading="lazy" class="w-full h-40 object-cover" @error="hideImg" />
+          <div class="px-3 py-2 text-xs text-slate-500">{{ g.label }}</div>
+        </div>
+      </div>
+      <div class="mt-3 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+        <div class="text-xs text-slate-500 mb-2">{{ t('common.imgOutline') }}</div>
+        <img :src="`/api/country-svg/${country.slug}`" :alt="t('common.imgOutline')" loading="lazy" class="w-full max-h-52 object-contain" @error="hideImg" />
+      </div>
+    </section>
+
+    <section>
+      <h2 class="text-xl font-semibold mb-3">{{ t('common.videos') }}</h2>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <a
+          v-for="v in videoLinks"
+          :key="v.name"
+          :href="v.url"
+          target="_blank"
+          rel="noopener"
+          class="flex items-center gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-700 transition"
+        >
+          <span class="text-2xl">{{ v.icon }}</span>
+          <span class="flex-1 text-sm font-medium">{{ t('common.watchOn') }} {{ v.name }}</span>
+          <span class="text-indigo-500">↗</span>
+        </a>
+      </div>
+    </section>
+
+    <section>
       <h2 class="text-xl font-semibold mb-3">{{ t('common.locationOnMap') }}</h2>
-      <WorldMap metric="continent" :highlight="country.iso_numeric" zoom-to-highlight height="420px" />
+      <WorldMap :highlight="country.iso_numeric" zoom-to-highlight height="420px" />
     </section>
 
     <section>

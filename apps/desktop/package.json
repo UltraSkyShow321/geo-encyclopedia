@@ -1,0 +1,50 @@
+{
+  "name": "geo-encyclopedia-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "世界地理百科全书 - 桌面客户端",
+  "author": "Geo-Encyclopedia",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "node sync.mjs && electron .",
+    "sync": "node sync.mjs",
+    "dist": "node sync.mjs && electron-builder --win",
+    "dist:mac": "node sync.mjs && electron-builder --mac",
+    "dist:linux": "node sync.mjs && electron-builder --linux"
+  },
+  "build": {
+    "appId": "com.geoencyclopedia.desktop",
+    "productName": "世界地理百科",
+    "files": ["main.cjs", "preload.cjs", "web/**/*"],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "signAndEditExecutable": false,
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false
+    },
+    "mac": {
+      "target": ["dmg", "zip"],
+      "icon": "build/icon.icns",
+      "category": "public.app-category.education"
+    },
+    "linux": {
+      "target": ["AppImage"],
+      "icon": "build/icon.png",
+      "category": "Education"
+    }
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  }
+}

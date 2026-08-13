@@ -1,0 +1,9 @@
+{
+  "appId": "com.geoencyclopedia.app",
+  "appName": "世界地理百科",
+  "webDir": "../../web/dist",
+  "backgroundColor": "#0f172a",
+  "android": {
+    "allowMixedContent": true
+  }
+}

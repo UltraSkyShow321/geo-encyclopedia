@@ -152,4 +152,29 @@ for (const size of [192, 512]) {
   fs.writeFileSync(path.join(outDir, `icon-${size}.png`), drawIcon(size));
 }
 fs.writeFileSync(path.join(outDir, 'apple-touch-icon.png'), drawIcon(180));
-console.log('icons written to', outDir);
+
+// 桌面端图标 (Electron)
+const desktopDir = path.join(__dirname, '..', 'apps', 'desktop', 'build');
+fs.mkdirSync(desktopDir, { recursive: true });
+fs.writeFileSync(path.join(desktopDir, 'icon.png'), drawIcon(512));
+
+// .ico（内嵌 256 PNG，Vista+ 支持）
+function toIco(png) {
+  const size = Math.round(Math.sqrt(png.length / 4));
+  const header = Buffer.alloc(6);
+  header.writeUInt16LE(0, 0);
+  header.writeUInt16LE(1, 2);
+  header.writeUInt16LE(1, 4);
+  const entry = Buffer.alloc(16);
+  entry[0] = size >= 256 ? 0 : size;
+  entry[1] = size >= 256 ? 0 : size;
+  entry.writeUInt16LE(1, 4);
+  entry.writeUInt16LE(32, 6);
+  entry.writeUInt32LE(png.length, 8);
+  entry.writeUInt32LE(22, 12);
+  return Buffer.concat([header, entry, png]);
+}
+const icoPng = drawIcon(256);
+fs.writeFileSync(path.join(desktopDir, 'icon.ico'), toIco(icoPng));
+
+console.log('icons written to', outDir, 'and', desktopDir);

@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '../stores/auth';
 import { useThemeStore } from '../stores/theme';
-import { api } from '../api';
+import { api, isNativeEnv } from '../api';
 import SearchBox from './SearchBox.vue';
 
 const { t, locale } = useI18n();
@@ -13,6 +13,7 @@ const theme = useThemeStore();
 const router = useRouter();
 const drafts = ref(0);
 const menuOpen = ref(false);
+const isNative = isNativeEnv();
 
 const links = computed(() => [
   { to: '/countries', label: t('nav.countries') },
@@ -113,6 +114,14 @@ function go(path: string) {
           <span v-if="drafts > 0" class="ml-1 text-[10px] bg-amber-500 text-white rounded-full px-1.5 py-0.5">
             {{ t('nav.drafts') }} {{ drafts }}
           </span>
+        </RouterLink>
+        <RouterLink to="/download" class="hidden lg:flex px-2.5 py-1.5 rounded-md text-sm hover:bg-slate-100 dark:hover:bg-slate-800">
+          {{ t('nav.download') }}
+        </RouterLink>
+        <RouterLink v-if="isNative" to="/settings" class="p-2 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800" title="设置">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.3 4.3a1.5 1.5 0 011.4 0l.9.5a1.5 1.5 0 002 0l.9-.5a1.5 1.5 0 012.1.5l.5.9a1.5 1.5 0 001.1.8l1 .2a1.5 1.5 0 011.5 1.5v1a1.5 1.5 0 000 1.1l-.2 1a1.5 1.5 0 00.8 1.1l.9.5a1.5 1.5 0 01.5 2.1l-.5.9a1.5 1.5 0 00-.5 1.1v1a1.5 1.5 0 01-1.5 1.5h-1a1.5 1.5 0 00-1.1 0l-1-.2a1.5 1.5 0 00-1.1.8l-.5.9a1.5 1.5 0 01-2.1.5l-.9-.5a1.5 1.5 0 00-2 0l-.9.5a1.5 1.5 0 01-2.1-.5l-.5-.9a1.5 1.5 0 00-1.1-.8l-1-.2a1.5 1.5 0 01-1.5-1.5v-1a1.5 1.5 0 000-1.1l.2-1a1.5 1.5 0 00-.8-1.1l-.9-.5a1.5 1.5 0 01-.5-2.1l.5-.9a1.5 1.5 0 00.5-1.1v-1a1.5 1.5 0 011.5-1.5h1a1.5 1.5 0 001.1 0l1 .2a1.5 1.5 0 001.1-.8l.5-.9a1.5 1.5 0 012.1-.5l.9.5zM12 15a3 3 0 100-6 3 3 0 000 6z" />
+          </svg>
         </RouterLink>
         <button
           v-if="auth.authed"

@@ -1,35 +1,33 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { api } from '../api';
 import { useThemeStore } from '../stores/theme';
-import { CONTINENT_COLORS, colorFor, legendFor, formatNumber } from '../utils/format';
 import { useI18n } from 'vue-i18n';
 
-type BasemapId = 'boundaries' | 'terrain' | 'satellite';
+type BasemapId = 'boundaries' | 'terrain' | 'satellite' | 'amap';
 
 const props = withDefaults(
   defineProps<{
-    metric?: 'continent' | 'population' | 'area';
     basemap?: BasemapId;
     showBasemapSwitcher?: boolean;
     highlight?: string;
     zoomToHighlight?: boolean;
     height?: string;
   }>(),
-  { metric: 'continent', basemap: 'boundaries', showBasemapSwitcher: false, highlight: '', zoomToHighlight: false, height: '520px' }
+  { basemap: 'boundaries', showBasemapSwitcher: false, highlight: '', zoomToHighlight: false, height: '520px' }
 );
 
-const { locale, t } = useI18n();
+const { t } = useI18n();
 const theme = useThemeStore();
 const router = useRouter();
 const el = ref<HTMLDivElement>();
 
 const basemap = ref<BasemapId>(props.basemap);
 
-const BASEMAPS: Record<BasemapId, { label: string; url: string; attribution: string }> = {
+const BASEMAPS: Record<BasemapId, { label: string; url?: string; overlayUrl?: string; overlayUrl2?: string; maxZoom?: number; attribution?: string }> = {
   boundaries: {
     label: t('map.layerBoundaries'),
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
@@ -37,13 +35,19 @@ const BASEMAPS: Record<BasemapId, { label: string; url: string; attribution: str
   },
   terrain: {
     label: t('map.layerTerrain'),
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Terrain_Base/MapServer/tile/{z}/{y}/{x}',
-    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, USGS, NOAA',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, USGS, NOAA, DeLorme',
   },
   satellite: {
     label: t('map.layerSatellite'),
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    overlayUrl: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+    overlayUrl2: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',
+    maxZoom: 19,
     attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics, USDA, USGS',
+  },
+  amap: {
+    label: t('map.layerAmap'),
   },
 };
 
@@ -51,18 +55,183 @@ const layers = computed(() => Object.entries(BASEMAPS).map(([id, v]) => ({ id: i
 
 let map: L.Map | undefined;
 let geoLayer: L.GeoJSON | undefined;
-let legend: L.Control | undefined;
 let highlightLayer: L.GeoJSON | undefined;
 let tileLayer: L.TileLayer | undefined;
+let overlayLayer: L.TileLayer | undefined;
+let overlayLayer2: L.TileLayer | undefined;
+let landformLayer: L.LayerGroup | undefined;
+let disposed = false;
+let amapKey = '';
+let amapSecurityCode = '';
+let amapInstance: any = null;
+let amapDiv: HTMLDivElement | null = null;
+
+declare global {
+  interface Window {
+    AMap?: any;
+    __leafletMap?: L.Map | undefined;
+    __geoFeatures?: any[];
+    _AMapSecurityConfig?: { securityJsCode: string };
+  }
+}
+
+async function ensureAmapKey() {
+  if (amapKey) return amapKey;
+  try {
+    const cfg = await api.config();
+    amapKey = cfg.amapKey || '';
+    amapSecurityCode = cfg.amapSecurityCode || '';
+  } catch {
+    amapKey = '';
+  }
+  return amapKey;
+}
+
+function loadAmapScript(key: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (window.AMap) return resolve();
+    // 高德安全密钥：在加载 SDK 前注入（可免配域名白名单）
+    if (amapSecurityCode) {
+      window._AMapSecurityConfig = { securityJsCode: amapSecurityCode };
+    }
+    const script = document.createElement('script');
+    script.src = `https://webapi.amap.com/maps?v=2.0&key=${key}`;
+    const timer = setTimeout(() => reject(new Error('高德地图 SDK 加载超时（网络或 Key 问题）')), 15000);
+    script.onload = () => { clearTimeout(timer); resolve(); };
+    script.onerror = () => { clearTimeout(timer); reject(new Error('高德地图 SDK 加载失败')); };
+    document.head.appendChild(script);
+  });
+}
+
+async function activateAmap() {
+  const key = await ensureAmapKey();
+  if (!key) {
+    alert('未配置高德地图 Key：请在 .env 填写 AMAP_KEY（lbs.amap.com 免费注册），并重启后端服务');
+    basemap.value = 'boundaries';
+    return;
+  }
+  try {
+    await loadAmapScript(key);
+  } catch (e: any) {
+    alert(`高德地图加载失败：${e.message}\n\n检查：\n1. AMAP_KEY 是否正确\n2. 是否已填写 AMAP_SECURITY_CODE（安全密钥 jscode）\n3. 改完 .env 后是否重启了后端服务\n4. 高德控制台 Key 状态是否为"已启用"`);
+    basemap.value = 'boundaries';
+    return;
+  }
+  if (disposed || !el.value) return;
+  if (!amapDiv) {
+    amapDiv = document.createElement('div');
+    amapDiv.style.cssText = 'position:absolute;inset:0;z-index:5;background:#eef1f4;';
+    el.value.parentElement?.appendChild(amapDiv);
+  }
+  if (!amapInstance) {
+    amapInstance = new (window.AMap as any).Map(amapDiv, {
+      zoom: 3,
+      center: [105, 35],
+      mapStyle: 'amap://styles/normal',
+      showLabel: true,
+    });
+    amapInstance.on('click', async (e: any) => {
+      try {
+        const r = await api.countryAt(e.lnglat.getLat(), e.lnglat.getLng());
+        if (r.slug) router.push(`/countries/${r.slug}`);
+      } catch {
+        /* ignore */
+      }
+    });
+  }
+  if (map) map.getContainer().style.visibility = 'hidden';
+}
+
+function deactivateAmap() {
+  if (amapInstance) {
+    amapInstance.destroy();
+    amapInstance = null;
+  }
+  if (amapDiv) {
+    amapDiv.remove();
+    amapDiv = null;
+  }
+  if (map) map.getContainer().style.visibility = 'visible';
+}
+
+const LANDFORM_COLORS: Record<string, string> = {
+  山脉: '#92400e', 山峰: '#a16207', 高原: '#b45309', 平原: '#65a30d', 沙漠: '#d97706',
+  盆地: '#a16207', 海峡: '#0891b2', 运河: '#0e7490', 湖泊: '#0284c7', 河流: '#38bdf8',
+  岛屿: '#14b8a6', 半岛: '#0d9488', 海湾: '#0369a1', 瀑布: '#0ea5e9', 峡谷: '#7c3aed',
+  森林: '#16a34a', 冰川: '#64748b',
+};
+
+async function renderLandforms() {
+  if (landformLayer) {
+    map?.removeLayer(landformLayer);
+    landformLayer = undefined;
+  }
+  if (basemap.value !== 'terrain') return;
+  try {
+    const landforms = await api.landforms();
+    if (disposed || !map) return;
+    landformLayer = L.layerGroup();
+    for (const lf of landforms) {
+      const color = LANDFORM_COLORS[lf.type] || '#64748b';
+      const icon = L.divIcon({
+        className: 'lf-marker',
+        html: `<div style="display:flex;align-items:center;gap:4px;white-space:nowrap;">
+          <span style="width:10px;height:10px;border-radius:50%;background:${color};border:1.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4);display:inline-block;"></span>
+          <span style="font-size:11px;font-weight:600;color:#1e293b;background:rgba(255,255,255,.85);padding:0 5px;border-radius:4px;border:1px solid rgba(100,116,139,.3);">${lf.name_zh}</span>
+        </div>`,
+        iconSize: [0, 0],
+      });
+      const marker = L.marker([lf.lat, lf.lng], { icon });
+      marker.bindPopup(
+        `<div style="font-size:13px;min-width:220px;max-width:320px;">
+          <div style="font-weight:700;font-size:14px;">${lf.name_zh} <span style="font-weight:400;color:#64748b;">${lf.name_en}</span></div>
+          <div style="margin:4px 0 6px;"><span style="display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;color:#fff;background:${color};">${lf.type}</span></div>
+          <div style="color:#334155;line-height:1.6;">${lf.desc || ''}</div>
+        </div>`
+      );
+      marker.addTo(landformLayer);
+    }
+    landformLayer.addTo(map);
+    syncLandformOpacity();
+  } catch {
+    /* 标注数据加载失败时静默 */
+  }
+}
+
+// 低缩放级别隐藏地貌标注，避免标签重叠；缩放 >=3 级显示
+function syncLandformOpacity() {
+  if (!landformLayer || !map) return;
+  const show = map.getZoom() >= 3;
+  landformLayer.eachLayer((l: any) => l.setOpacity?.(show ? 1 : 0));
+}
 
 function applyBasemap() {
   if (!map) return;
+  if (basemap.value === 'amap') {
+    activateAmap();
+    return;
+  }
+  deactivateAmap();
   const b = BASEMAPS[basemap.value];
   if (tileLayer) {
     map.removeLayer(tileLayer);
     tileLayer = undefined;
   }
-  tileLayer = L.tileLayer(b.url, { attribution: b.attribution, maxZoom: 18 }).addTo(map);
+  tileLayer = L.tileLayer(b.url!, { attribution: b.attribution || '', maxZoom: b.maxZoom || 18 }).addTo(map);
+  if (overlayLayer) {
+    map.removeLayer(overlayLayer);
+    overlayLayer = undefined;
+  }
+  if (overlayLayer2) {
+    map.removeLayer(overlayLayer2);
+    overlayLayer2 = undefined;
+  }
+  if (b.overlayUrl) {
+    overlayLayer = L.tileLayer(b.overlayUrl, { attribution: '', maxZoom: b.maxZoom || 18, opacity: 0.9 }).addTo(map);
+  }
+  if (b.overlayUrl2) {
+    overlayLayer2 = L.tileLayer(b.overlayUrl2, { attribution: '', maxZoom: b.maxZoom || 18, opacity: 0.85 }).addTo(map);
+  }
 }
 
 function paint(geojson: any) {
@@ -70,23 +239,26 @@ function paint(geojson: any) {
     map?.removeLayer(geoLayer);
     geoLayer = undefined;
   }
+  (window as any).__geoFeatures = geojson.features;
+  const strokeColor = theme.isDark ? '#94a3b8' : '#334155';
   geoLayer = L.geoJSON(geojson, {
-    style: (f: any) => {
-      const p = f.properties;
-      const fill = CONTINENT_COLORS[p.continent] || (props.metric !== 'continent' ? colorFor(props.metric, props.metric === 'population' ? p.population : p.area_km2) : '#94a3b8');
-      return {
-        color: theme.isDark ? '#0f172a' : '#ffffff',
-        weight: 0.8,
-        fillColor: fill,
-        fillOpacity: 0.72,
-      };
-    },
+    style: () => ({
+      color: strokeColor,
+      weight: 0.8,
+      fillColor: '#ffffff',
+      fillOpacity: 0.02,
+    }),
     onEachFeature: (f: any, layer: L.Layer) => {
       const p = f.properties;
-      let info = p.name_zh || p.name_en;
-      if (props.metric === 'population') info += ` · ${formatNumber(p.population, locale.value)}`;
-      if (props.metric === 'area') info += ` · ${formatNumber(p.area_km2, locale.value)} km²`;
-      layer.bindTooltip(info, { sticky: true });
+      const label = p.name_zh ? `${p.name_zh}${p.name_en ? ' · ' + p.name_en : ''}` : p.name_en;
+      layer.bindTooltip(label, { sticky: true });
+      layer.on('mouseover', (e: any) => {
+        e.target.setStyle({ color: '#f59e0b', weight: 1.6 });
+        e.target.bringToFront();
+      });
+      layer.on('mouseout', (e: any) => {
+        e.target.setStyle({ color: strokeColor, weight: 0.8 });
+      });
       layer.on('click', () => {
         if (p.slug) router.push(`/countries/${p.slug}`);
       });
@@ -98,7 +270,7 @@ function paint(geojson: any) {
     highlightLayer?.remove();
     highlightLayer = L.geoJSON(geojson, {
       filter: (f: any) => String(f.properties.iso_numeric) === String(props.highlight),
-      style: { color: '#f59e0b', weight: 2, fillColor: '#f59e0b', fillOpacity: 0.35 },
+      style: { color: '#f59e0b', weight: 2.5, fillColor: 'transparent', fillOpacity: 0 },
     }).addTo(map!);
     if (props.zoomToHighlight) {
       map?.fitBounds(highlightLayer.getBounds().pad(0.1), { maxZoom: 4 });
@@ -106,45 +278,23 @@ function paint(geojson: any) {
   }
 }
 
-function renderLegend() {
-  legend?.remove();
-  legend = new L.Control({ position: 'bottomleft' });
-  legend.onAdd = () => {
-    const div = L.DomUtil.create('div', 'bg-white/90 dark:bg-slate-900/90 rounded shadow px-3 py-2 text-xs leading-5');
-    let html = `<div class="font-semibold mb-1">${t('map.legendTitle')}</div>`;
-    if (props.metric === 'continent') {
-      html += Object.entries(CONTINENT_COLORS)
-        .map(([name, c]) => `<div><span class="inline-block w-3 h-3 rounded-sm mr-1.5 align-middle" style="background:${c}"></span>${name}</div>`)
-        .join('');
-    } else {
-      html += legendFor(props.metric)
-        .map((l) => `<div><span class="inline-block w-3 h-3 rounded-sm mr-1.5 align-middle" style="background:${l.color}"></span>${l.label}</div>`)
-        .join('');
-    }
-    div.innerHTML = html;
-    return div;
-  };
-  legend.addTo(map!);
-}
-
 async function initMap() {
-  if (!el.value || map) return;
+  if (!el.value || map || disposed) return;
   map = L.map(el.value, { worldCopyJump: true, zoomControl: true, attributionControl: true }).setView([25, 10], 2);
+  map.on('zoomend', syncLandformOpacity);
+  (window as any).__leafletMap = map;
   applyBasemap();
   const geojson = await api.geojson();
+  if (disposed || !map) return;
   paint(geojson);
-  renderLegend();
+  renderLandforms();
 }
 
-watch(
-  () => props.metric,
-  async () => {
-    if (!map) return;
-    const geojson = await api.geojson();
-    paint(geojson);
-    renderLegend();
-  }
-);
+watch(basemap, () => {
+  if (!map) return;
+  applyBasemap();
+  renderLandforms();
+});
 
 watch(
   () => props.highlight,
@@ -155,23 +305,31 @@ watch(
   }
 );
 
-watch(basemap, () => {
-  if (!map) return;
-  applyBasemap();
-});
-
 onMounted(initMap);
 onBeforeUnmount(() => {
+  disposed = true;
+  deactivateAmap();
+  if ((window as any).__leafletMap === map) (window as any).__leafletMap = undefined;
   map?.remove();
   map = undefined;
 });
+
+// 供父组件调用: 飞往指定国家
+function focusCountry(slug: string) {
+  if (!map || disposed) return;
+  const hit = (window as any).__geoFeatures?.find((f: any) => f.properties.slug === slug);
+  if (!hit) return;
+  const layer = L.geoJSON(hit);
+  map.flyToBounds(layer.getBounds().pad(0.15), { maxZoom: 5 });
+}
+defineExpose({ focusCountry });
 </script>
 
 <template>
   <div class="relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800">
     <div ref="el" :style="{ height }" class="w-full z-0"></div>
 
-    <div v-if="showBasemapSwitcher" class="absolute top-2 left-2 z-[500] flex rounded-lg overflow-hidden border border-slate-300 dark:border-slate-700 text-[11px] shadow">
+    <div v-if="showBasemapSwitcher" class="absolute top-2 right-2 z-[500] flex rounded-lg overflow-hidden border border-slate-300 dark:border-slate-700 text-[11px] shadow">
       <button
         v-for="l in layers"
         :key="l.id"

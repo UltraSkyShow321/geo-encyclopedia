@@ -1,0 +1,7 @@
+{
+  "string": [
+    { "name": "app_name", "value": "世界地理百科" },
+    { "name": "module_desc", "value": "世界地理百科全书客户端" },
+    { "name": "ability_desc", "value": "世界地理百科全书" }
+  ]
+}

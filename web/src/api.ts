@@ -27,6 +27,7 @@ export interface CountrySummary {
 export interface CountryDetail extends CountrySummary {
   body?: string;
   bodyHtml?: string;
+  capital_coords?: [number, number] | null;
   favorites?: { note: string } | null;
 }
 
@@ -69,8 +70,29 @@ export interface Card {
   created_at: number;
 }
 
+declare global {
+  interface Window {
+    __GEO_NATIVE__?: boolean;
+  }
+}
+
+/** 原生包装（Capacitor/Electron）环境下，API 地址可在应用内设置 */
+export function isNativeEnv(): boolean {
+  return window.__GEO_NATIVE__ === true;
+}
+
+export function apiBase(): string {
+  if (!isNativeEnv()) return '';
+  const saved = localStorage.getItem('geo-server');
+  return saved ? saved.replace(/\/+$/, '') : '';
+}
+
+export function setApiBase(url: string) {
+  localStorage.setItem('geo-server', url.replace(/\/+$/, ''));
+}
+
 async function req<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, {
+  const res = await fetch(apiBase() + url, {
     headers: { 'content-type': 'application/json' },
     ...init,
   });
@@ -100,6 +122,9 @@ export const api = {
   topic: (slug: string) => req<any>(`/api/topics/${encodeURIComponent(slug)}`),
   search: (q: string) => req<{ q: string; total: number; results: SearchResult[] }>(`/api/search?q=${encodeURIComponent(q)}`),
   geojson: () => req<any>('/api/geojson'),
+  landforms: () => req<any[]>('/api/landforms'),
+  config: () => req<{ amapKey: string; amapSecurityCode: string }>('/api/config'),
+  countryAt: (lat: number, lng: number) => req<{ slug: string | null; name_zh: string | null }>(`/api/country-at?lat=${lat}&lng=${lng}`),
   quiz: (continent: string, count: number) =>
     req<{ questions: QuizQuestion[] }>(`/api/quiz?continent=${encodeURIComponent(continent)}&count=${count}`),
   me: () => req<{ authed: boolean }>('/api/auth/me'),

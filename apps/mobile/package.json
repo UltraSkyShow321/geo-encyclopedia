@@ -1,0 +1,19 @@
+{
+  "name": "geo-encyclopedia-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "sync": "node sync.mjs",
+    "android": "cd android && gradlew.bat assembleRelease",
+    "open:android": "cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/cli": "^7.0.0",
+    "@capacitor/core": "^7.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
+}

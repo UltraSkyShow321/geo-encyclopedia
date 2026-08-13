@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router';
+import { createRouter, createWebHistory, createWebHashHistory } from 'vue-router';
 import { useAuthStore } from './stores/auth';
 
 const routes = [
@@ -14,11 +14,15 @@ const routes = [
   { path: '/cards', name: 'cards', component: () => import('./views/CardsView.vue'), meta: { title: '记忆卡片', auth: true } },
   { path: '/favorites', name: 'favorites', component: () => import('./views/FavoritesView.vue'), meta: { title: '我的收藏', auth: true } },
   { path: '/login', name: 'login', component: () => import('./views/LoginView.vue') },
+  { path: '/settings', name: 'settings', component: () => import('./views/SettingsView.vue') },
+  { path: '/download', name: 'download', component: () => import('./views/DownloadView.vue'), meta: { title: '下载客户端' } },
   { path: '/:pathMatch(.*)*', redirect: '/' },
 ];
 
 export const router = createRouter({
-  history: createWebHistory(),
+  history: typeof location !== 'undefined' && location.protocol === 'file:'
+    ? createWebHashHistory()
+    : createWebHistory(),
   routes,
   scrollBehavior: () => ({ top: 0 }),
 });

@@ -1,4 +1,20 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { db, parseItem, stmts } from '../db.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+let capitalsCache = null;
+function capitals() {
+  if (capitalsCache) return capitalsCache;
+  const file = path.join(process.env.CONTENT_DIR || path.join(__dirname, '..', '..', '..', 'content'), 'metadata', 'capitals.json');
+  try {
+    capitalsCache = JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch {
+    capitalsCache = {};
+  }
+  return capitalsCache;
+}
 
 const LIST_FIELDS = [
   'slug', 'name_zh', 'name_en', 'continent', 'continent_en', 'capital_zh', 'capital_en',
@@ -58,6 +74,12 @@ export function registerCountriesRoutes(app) {
       return;
     }
     const fav = db.prepare('SELECT * FROM favorites WHERE slug = ?').get(item.slug);
-    return { ...item, data: undefined, favorites: fav ? { note: fav.note } : null };
+    const coords = capitals()[item.slug];
+    return {
+      ...item,
+      data: undefined,
+      capital_coords: coords || null,
+      favorites: fav ? { note: fav.note } : null,
+    };
   });
 }
