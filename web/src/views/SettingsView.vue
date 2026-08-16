@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { api, apiBase, isNativeEnv, notifyNativeProxy, setApiBase } from '../api';
+import { downloadOfflinePack, getOfflineMeta, getOfflinePack } from '../offline';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -12,6 +13,40 @@ const url = ref(apiBase());
 const status = ref<'idle' | 'testing' | 'ok' | 'fail'>('idle');
 const firstTime = computed(() => route.query.first === '1');
 const native = ref(false);
+
+// 离线包状态
+const packInfo = ref<{ has: boolean; version?: number; updated?: number; size?: string }>({ has: false });
+const packBusy = ref(false);
+
+async function refreshPackInfo() {
+  const pack = await getOfflinePack();
+  const meta = await getOfflineMeta();
+  packInfo.value = pack
+    ? {
+        has: true,
+        version: meta?.version ?? pack.version,
+        updated: meta?.updated_at,
+        size: `${(JSON.stringify(pack).length / 1024 / 1024).toFixed(1)} MB`,
+      }
+    : { has: false };
+}
+
+async function updatePack() {
+  packBusy.value = true;
+  try {
+    await downloadOfflinePack();
+    await refreshPackInfo();
+  } catch {
+    alert('离线包更新失败（需要联网）');
+  } finally {
+    packBusy.value = false;
+  }
+}
+
+onMounted(async () => {
+  native.value = isNativeEnv();
+  await refreshPackInfo();
+});
 
 async function test() {
   const target = url.value.trim().replace(/\/+$/, '');
@@ -47,10 +82,6 @@ function save() {
   notifyNativeProxy(target);
   if (firstTime.value) router.push('/');
 }
-
-onMounted(() => {
-  native.value = isNativeEnv();
-});
 </script>
 
 <template>
@@ -88,6 +119,19 @@ onMounted(() => {
       </div>
       <button class="w-full py-2.5 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700 disabled:opacity-50" :disabled="!url.trim()" @click="save">
         {{ firstTime ? t('settings.start') : t('settings.save') }}
+      </button>
+    </div>
+
+    <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 space-y-2">
+      <h2 class="text-sm font-semibold">📦 离线数据包</h2>
+      <p class="text-xs text-slate-500">首次联网下载后，断网也能浏览全部 244 国内容、搜索与测验。</p>
+      <div class="text-sm" v-if="packInfo.has">
+        ✅ 已缓存（{{ packInfo.size }}）
+        <span v-if="packInfo.updated" class="text-xs text-slate-400 ml-1">{{ new Date(packInfo.updated).toLocaleString() }}</span>
+      </div>
+      <div class="text-sm" v-else>尚未缓存离线数据</div>
+      <button class="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm hover:bg-indigo-700 disabled:opacity-50" :disabled="packBusy" @click="updatePack">
+        {{ packBusy ? '下载中…' : '立即下载/更新离线包' }}
       </button>
     </div>
 

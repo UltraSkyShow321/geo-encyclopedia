@@ -3,6 +3,7 @@ import { onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useThemeStore } from './stores/theme';
 import { apiBase, isNativeEnv } from './api';
+import { checkOfflineUpdate } from './offline';
 import NavBar from './components/NavBar.vue';
 import FooterBar from './components/FooterBar.vue';
 
@@ -27,6 +28,8 @@ onMounted(async () => {
   if (isNativeEnv() && !apiBase() && router.currentRoute.value.name !== 'settings') {
     router.push({ name: 'settings', query: { first: '1' } });
   }
+  // 离线数据包：后台自动检查更新（联网时）
+  setTimeout(() => { checkOfflineUpdate().catch(() => {}); }, 3000);
 });
 </script>
 

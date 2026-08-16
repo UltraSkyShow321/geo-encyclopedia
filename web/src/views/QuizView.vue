@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { api, type QuizQuestion } from '../api';
+import { offline } from '../offline';
 import { CONTINENTS } from '../utils/format';
 
 const { t } = useI18n();
@@ -19,8 +20,14 @@ const wrongQuestions = ref<QuizQuestion[]>([]);
 const addedToCards = ref(false);
 
 async function start() {
-  const r = await api.quiz(continent.value, count.value);
-  questions.value = r.questions;
+  let qs: QuizQuestion[] = [];
+  try {
+    const r = await api.quiz(continent.value, count.value);
+    qs = r.questions;
+  } catch {
+    qs = (await offline.quiz(continent.value, count.value)) as QuizQuestion[];
+  }
+  questions.value = qs;
   index.value = 0;
   selected.value = null;
   correctCount.value = 0;

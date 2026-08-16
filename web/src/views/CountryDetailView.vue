@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { api, assetUrl, type CountryDetail } from '../api';
+import { offline, countryOutlineSvg } from '../offline';
 import EChart from '../components/EChart.vue';
 import WorldMap from '../components/WorldMap.vue';
 import { formatNumber, formatArea } from '../utils/format';
@@ -21,6 +22,8 @@ const isFav = ref(false);
 const note = ref('');
 const noteSaved = ref(false);
 const saving = ref(false);
+const offlineMode = ref(false);
+const offlineOutline = ref('');
 
 const flagPath = computed(() => {
   const c = country.value;
@@ -30,6 +33,10 @@ const flagPath = computed(() => {
 const gallery = computed(() => {
   const c = country.value;
   if (!c) return [];
+  if (offlineMode.value) {
+    // 离线模式：只显示国旗与本地轮廓
+    return [];
+  }
   const items = [
     { src: assetUrl(`/api/staticmap/${c.slug}?layer=imagery`), label: t('common.imgSatellite') },
     { src: assetUrl(`/api/staticmap/${c.slug}?layer=terrain`), label: t('common.imgTerrain') },
@@ -142,9 +149,34 @@ onMounted(async () => {
       .flatMap((cat) => cat.items)
       .filter((tp: any) => (tp as any).related_countries?.includes(c.slug));
   } catch {
-    notFound.value = true;
+    // 离线兜底：从本地离线包读取详情
+    const oc = await offline.country(String(route.params.slug));
+    if (oc) {
+      offlineMode.value = true;
+      country.value = { ...(oc as any), status: 'published', favorites: null };
+      document.title = `${oc.name_zh} - ${oc.name_en}`;
+      siblings.value = (await offline.countries()).filter((x: any) => x.continent === oc.continent);
+      const ts = await offline.topics();
+      relatedTopics.value = ts.filter((t: any) => t.related_countries?.includes(oc.slug));
+      // 离线轮廓图（本地生成）
+      offlineOutline.value = await makeOutline();
+    } else {
+      notFound.value = true;
+    }
   }
 });
+
+async function makeOutline(): Promise<string> {
+  try {
+    const g = await offline.geojson();
+    const f = g?.features?.find((x: any) => x.properties.slug === String(route.params.slug));
+    if (!f) return '';
+    return countryOutlineSvg(f);
+  } catch (e) {
+    console.error('离线轮廓生成失败:', e);
+    return '';
+  }
+}
 </script>
 
 <template>
@@ -219,6 +251,12 @@ onMounted(async () => {
         <div class="text-xs text-slate-500 mb-2">{{ t('common.imgOutline') }}</div>
         <img :src="assetUrl(`/api/country-svg/${country.slug}`)" :alt="t('common.imgOutline')" loading="lazy" class="w-full max-h-52 object-contain" @error="hideImg" />
       </div>
+    </section>
+
+    <section v-if="offlineMode" class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+      <div class="text-xs text-slate-500 mb-2">{{ t('common.imgOutline') }}</div>
+      <img v-if="offlineOutline" :src="'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(offlineOutline)" :alt="t('common.imgOutline')" class="w-full max-h-52 object-contain" />
+      <div v-else class="py-8 text-center text-3xl">{{ country.flag_emoji || '🌐' }}</div>
     </section>
 
     <section>

@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { api } from '../api';
+import { offline } from '../offline';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -14,7 +15,13 @@ onMounted(async () => {
     topic.value = await api.topic(String(route.params.slug));
     document.title = topic.value.title_zh;
   } catch {
-    notFound.value = true;
+    const ot = await offline.topic(String(route.params.slug));
+    if (ot) {
+      topic.value = { ...ot, status: 'published' };
+      document.title = ot.title_zh;
+    } else {
+      notFound.value = true;
+    }
   }
 });
 </script>

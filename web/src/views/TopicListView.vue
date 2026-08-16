@@ -3,11 +3,13 @@ import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { api, type TopicSummary } from '../api';
+import { offline } from '../offline';
 
 const { t } = useI18n();
 const route = useRoute();
 const topics = ref<{ category: string; items: TopicSummary[] }[]>([]);
 const active = ref(String(route.query.category || ''));
+const offlineMode = ref(false);
 
 const categories = computed(() => {
   if (!active.value) return topics.value;
@@ -20,8 +22,22 @@ const tabs = computed(() => [
 ]);
 
 onMounted(async () => {
-  const r = await api.topics();
-  topics.value = r.categories;
+  try {
+    const r = await api.topics();
+    topics.value = r.categories;
+  } catch {
+    offlineMode.value = true;
+    const ts = await offline.topics();
+    const cats = new Map<string, TopicSummary[]>();
+    for (const t of ts) {
+      if (!cats.has(t.category)) cats.set(t.category, []);
+      cats.get(t.category)!.push({
+        slug: t.slug, title_zh: t.title_zh, title_en: t.title_en,
+        category: t.category, summary: t.summary, status: 'published',
+      });
+    }
+    topics.value = [...cats.entries()].map(([category, items]) => ({ category, items }));
+  }
 });
 </script>
 

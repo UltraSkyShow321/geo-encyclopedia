@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { api, type CountrySummary } from '../api';
+import { offline } from '../offline';
 import CountryCard from '../components/CountryCard.vue';
 import { CONTINENTS } from '../utils/format';
 import { useAuthStore } from '../stores/auth';
@@ -55,6 +56,19 @@ watch([continent, q, includeDrafts], async () => {
       limit: 2000,
     });
     countries.value = r.items;
+  } catch {
+    // 离线兜底：从本地离线包读取
+    const cs = (await offline.countries()) as any[];
+    let list = cs;
+    if (continent.value) list = list.filter((c) => c.continent === continent.value);
+    if (q.value) {
+      const kw = q.value.toLowerCase();
+      list = list.filter((c) =>
+        [c.name_zh, c.name_en, c.capital_zh, c.capital_en, c.continent].filter(Boolean).join(' ').toLowerCase().includes(kw)
+      );
+    }
+    list = list.map((c) => ({ ...c, status: 'published' }));
+    countries.value = list as any;
   } finally {
     loading.value = false;
   }

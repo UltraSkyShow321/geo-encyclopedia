@@ -115,10 +115,15 @@ export async function notifyNativeProxy(url: string) {
 }
 
 async function req<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(apiBase() + url, {
-    headers: { 'content-type': 'application/json' },
-    ...init,
-  });
+  let res: Response;
+  try {
+    res = await fetch(apiBase() + url, {
+      headers: { 'content-type': 'application/json' },
+      ...init,
+    });
+  } catch {
+    throw new Error('offline');
+  }
   if (!res.ok) {
     if (res.status === 401) throw new Error('unauthorized');
     let msg = res.statusText;

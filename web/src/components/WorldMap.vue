@@ -65,6 +65,8 @@ let amapKey = '';
 let amapSecurityCode = '';
 let amapInstance: any = null;
 let amapDiv: HTMLDivElement | null = null;
+const offlineMode = ref(false);
+const amapNotice = ref('');
 
 declare global {
   interface Window {
@@ -73,6 +75,21 @@ declare global {
     __geoFeatures?: any[];
     _AMapSecurityConfig?: { securityJsCode: string };
   }
+}
+
+async function loadGeoJson(): Promise<any> {
+  try {
+    return await api.geojson();
+  } catch {
+    const g = await offlineGeojson();
+    if (g) offlineMode.value = true;
+    return g;
+  }
+}
+
+async function offlineGeojson(): Promise<any | null> {
+  const { offline } = await import('../offline');
+  return offline.geojson();
 }
 
 async function ensureAmapKey() {
@@ -102,8 +119,6 @@ function loadAmapScript(key: string): Promise<void> {
     document.head.appendChild(script);
   });
 }
-
-const amapNotice = ref('');
 
 function showAmapNotice(msg: string) {
   amapNotice.value = msg;
@@ -175,7 +190,13 @@ async function renderLandforms() {
   }
   if (basemap.value !== 'terrain') return;
   try {
-    const landforms = await api.landforms();
+    let landforms: any[];
+    try {
+      landforms = await api.landforms();
+    } catch {
+      const { offline } = await import('../offline');
+      landforms = await offline.landforms();
+    }
     if (disposed || !map) return;
     landformLayer = L.layerGroup();
     for (const lf of landforms) {
@@ -220,6 +241,10 @@ function applyBasemap() {
   }
   deactivateAmap();
   const b = BASEMAPS[basemap.value];
+  // 离线模式：不加载网络瓦片，仅显示本地轮廓
+  if (offlineMode.value) {
+    return;
+  }
   if (tileLayer) {
     map.removeLayer(tileLayer);
     tileLayer = undefined;
@@ -291,7 +316,7 @@ async function initMap() {
   map.on('zoomend', syncLandformOpacity);
   (window as any).__leafletMap = map;
   applyBasemap();
-  const geojson = await api.geojson();
+  const geojson = await loadGeoJson();
   if (disposed || !map) return;
   paint(geojson);
   renderLandforms();
@@ -307,7 +332,7 @@ watch(
   () => props.highlight,
   async () => {
     if (!map) return;
-    const geojson = await api.geojson();
+    const geojson = await loadGeoJson();
     paint(geojson);
   }
 );
@@ -348,6 +373,10 @@ defineExpose({ focusCountry });
       >
         {{ l.label }}
       </button>
+    </div>
+
+    <div v-if="offlineMode" class="absolute top-2 left-1/2 -translate-x-1/2 z-[600] rounded-lg bg-amber-50 dark:bg-amber-900/40 border border-amber-300 dark:border-amber-700 px-3 py-1.5 text-xs text-amber-800 dark:text-amber-200 shadow">
+      离线模式：无底图，仅显示国家轮廓
     </div>
 
     <div v-if="amapNotice" class="absolute top-12 right-2 z-[600] max-w-xs rounded-lg bg-amber-50 dark:bg-amber-900/40 border border-amber-300 dark:border-amber-700 px-3 py-2 text-xs text-amber-800 dark:text-amber-200 shadow">

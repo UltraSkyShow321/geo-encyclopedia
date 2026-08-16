@@ -63,7 +63,7 @@ async function main() {
 
   // ============ 1. 首页 ============
   try {
-    await goto('/');
+    await goto('/#/');
     await page.waitForSelector('h1', { timeout: 10000 });
     const title = await page.$eval('h1', (e) => e.textContent.trim());
     await page.waitForFunction(() => document.querySelectorAll('main .text-2xl.font-bold').length >= 4, { timeout: 15000 });
@@ -77,13 +77,13 @@ async function main() {
 
   // ============ 2. 国家列表 ============
   try {
-    await goto('/countries');
-    await page.waitForFunction(() => document.querySelectorAll('a[href^="/countries/"]').length > 5, { timeout: 15000 });
-    const cards = await page.$$eval('a[href^="/countries/"]', (els) => els.length);
+    await goto('/#/countries');
+    await page.waitForFunction(() => document.querySelectorAll('a[href^="#/countries/"]').length > 5, { timeout: 15000 });
+    const cards = await page.$$eval('a[href^="#/countries/"]', (els) => els.length);
     if (cards >= 10) pass(`国家列表: 卡片渲染 (${cards} 张)`);
     else fail('国家列表: 卡片渲染', cards);
     await page.select('select', '亚洲');
-    await page.waitForFunction(() => document.querySelectorAll('a[href^="/countries/"]').length > 5, { timeout: 10000 });
+    await page.waitForFunction(() => document.querySelectorAll('a[href^="#/countries/"]').length > 5, { timeout: 10000 });
     pass('国家列表: 大洲筛选');
     await page.select('select:nth-of-type(2)', 'population');
     await shot('02-countries');
@@ -92,7 +92,7 @@ async function main() {
 
   // ============ 3. 国家详情 ============
   try {
-    await goto('/countries/cn');
+    await goto('/#/countries/cn');
     await page.waitForSelector('article', { timeout: 15000 });
     const h1 = await page.$eval('h1', (e) => e.textContent);
     const bodyText = await page.$eval('article', (e) => e.textContent.length);
@@ -124,12 +124,12 @@ async function main() {
 
   // ============ 4. 专题 ============
   try {
-    await goto('/topics');
-    await page.waitForFunction(() => document.querySelectorAll('a[href^="/topics/"]').length >= 3, { timeout: 10000 });
-    const n = await page.$$eval('a[href^="/topics/"]', (els) => els.length);
+    await goto('/#/topics');
+    await page.waitForFunction(() => document.querySelectorAll('a[href^="#/topics/"]').length >= 3, { timeout: 10000 });
+    const n = await page.$$eval('a[href^="#/topics/"]', (els) => els.length);
     if (n >= 3) pass(`专题列表: ${n} 篇`);
     else fail('专题列表', n);
-    await clickText('a[href^="/topics/"]', '世界最长河流');
+    await clickText('a[href^="#/topics/"]', '世界最长河流');
     await page.waitForSelector('article', { timeout: 10000 });
     pass('专题详情: 正文渲染');
     await shot('04-topics');
@@ -137,7 +137,7 @@ async function main() {
 
   // ============ 5. 地图（平面地图） ============
   try {
-    await goto('/map');
+    await goto('/#/map');
     await page.waitForFunction(() => document.querySelector('.leaflet-container'), { timeout: 20000 });
     pass('地图: 平面地图渲染');
 
@@ -170,22 +170,22 @@ async function main() {
       }, [lng, lat]);
       if (!point) { fail(`地图: 点击跳转(${name})`, 'no map'); continue; }
       await page.mouse.click(point.x, point.y);
-      await page.waitForFunction((n) => location.pathname.startsWith('/countries/'), { timeout: 10000 }, name).catch(() => {});
-      const path = await page.evaluate(() => location.pathname);
+      await page.waitForFunction((n) => location.hash.startsWith('#/countries/'), { timeout: 10000 }, name).catch(() => {});
+      const path = await page.evaluate(() => location.hash.slice(1));
       if (path.includes('/countries/')) pass(`地图: 点击${name}跳转 (${path})`);
       else fail(`地图: 点击${name}跳转`, path);
-      await goto('/map');
+      await goto('/#/map');
       await page.waitForFunction(() => document.querySelector('.leaflet-container'), { timeout: 15000 });
     }
   } catch (e) { fail('地图页', e); }
 
   // ============ 6. 排行 ============
   try {
-    await goto('/ranks');
+    await goto('/#/ranks');
     await page.waitForFunction(() => document.querySelectorAll('canvas').length >= 2, { timeout: 15000 });
     await new Promise((r) => setTimeout(r, 1500));
     const canvases = await page.$$eval('canvas', (els) => els.length);
-    const rows = await page.$$eval('a[href^="/countries/"]', (els) => els.length);
+    const rows = await page.$$eval('a[href^="#/countries/"]', (els) => els.length);
     if (canvases >= 2 && rows >= 10) pass(`排行: ${canvases} 图表 + ${rows} 行数据`);
     else fail('排行', `canvases=${canvases} rows=${rows}`);
     await shot('06-ranks');
@@ -193,9 +193,9 @@ async function main() {
 
   // ============ 7. 搜索 ============
   try {
-    await goto('/search?q=' + encodeURIComponent('日本'));
-    await page.waitForFunction(() => document.body.textContent.includes('日本'), { timeout: 10000 });
-    const results = await page.$$eval('a[href^="/countries/"]', (els) => els.length);
+    await goto('/#/search?q=' + encodeURIComponent('日本'));
+    await page.waitForFunction(() => document.querySelectorAll('a[href^="#/countries/"]').length >= 1, { timeout: 15000 });
+    const results = await page.$$eval('a[href^="#/countries/"]', (els) => els.length);
     if (results >= 1) pass('搜索: 中文关键词命中');
     else fail('搜索: 中文关键词', results);
     await shot('07-search');
@@ -203,7 +203,7 @@ async function main() {
 
   // ============ 8. 测验 ============
   try {
-    await goto('/quiz');
+    await goto('/#/quiz');
     await page.waitForSelector('button', { timeout: 10000 });
     await clickText('button', '开始测验');
     await page.waitForFunction(() => document.body.textContent.includes('进度'), { timeout: 15000 });
@@ -232,7 +232,7 @@ async function main() {
 
   // ============ 9. 登录 ============
   try {
-    await goto('/login');
+    await goto('/#/login');
     await page.type('input[type="password"]', 'wrong-password');
     await page.click('form button');
     await page.waitForFunction(() => document.body.textContent.includes('密码错误'), { timeout: 10000 });
@@ -247,7 +247,7 @@ async function main() {
 
   // ============ 10. 收藏/笔记 ============
   try {
-    await goto('/countries/jp');
+    await goto('/#/countries/jp');
     await page.waitForSelector('article', { timeout: 15000 });
     await clickText('button', '收藏');
     await new Promise((r) => setTimeout(r, 500));
@@ -257,7 +257,7 @@ async function main() {
     await clickText('button', '取消收藏');
     await new Promise((r) => setTimeout(r, 500));
     pass('收藏: 取消成功');
-    await goto('/favorites');
+    await goto('/#/favorites');
     await page.waitForSelector('h1', { timeout: 10000 });
     pass('收藏: 收藏页访问');
     await shot('10-favorites');
@@ -265,7 +265,7 @@ async function main() {
 
   // ============ 11. 记忆卡片 ============
   try {
-    await goto('/cards');
+    await goto('/#/cards');
     await page.waitForSelector('h1', { timeout: 10000 });
     await clickText('button', '新建卡片');
     await page.waitForSelector('form input', { timeout: 10000 });
@@ -281,7 +281,7 @@ async function main() {
 
   // ============ 12. 下载页 ============
   try {
-    await goto('/download');
+    await goto('/#/download');
     await page.waitForFunction(() => document.querySelectorAll('a[href*="github.com"]').length >= 2, { timeout: 10000 });
     pass('下载页: 平台卡片与下载链接');
     await shot('12-download');
@@ -289,14 +289,14 @@ async function main() {
 
   // ============ 13. 设置页 ============
   try {
-    await goto('/settings');
+    await goto('/#/settings');
     await page.waitForFunction(() => document.body.textContent.includes('网页版无需设置'), { timeout: 10000 });
     pass('设置页: 网页版提示');
   } catch (e) { fail('设置页', e); }
 
   // ============ 14. PWA ============
   try {
-    await goto('/');
+    await goto('/#/');
     await page.evaluate(() => navigator.serviceWorker.getRegistrations().then((r) => r.length));
     const swCount = await page.evaluate(() => navigator.serviceWorker.getRegistrations().then((rs) => rs.length));
     const manifestOk = await page.evaluate(() => fetch('/manifest.webmanifest').then((r) => r.ok));

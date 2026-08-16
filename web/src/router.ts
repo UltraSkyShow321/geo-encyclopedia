@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory, createWebHashHistory } from 'vue-router';
+import { createRouter, createWebHashHistory } from 'vue-router';
 import { useAuthStore } from './stores/auth';
 
 const routes = [
@@ -20,9 +20,8 @@ const routes = [
 ];
 
 export const router = createRouter({
-  history: typeof location !== 'undefined' && location.protocol === 'file:'
-    ? createWebHashHistory()
-    : createWebHistory(),
+  // 统一 hash 路由：离线(PWA 缓存)/桌面(Electron)/部署子路径 下都稳定可靠
+  history: createWebHashHistory(),
   routes,
   scrollBehavior: () => ({ top: 0 }),
 });

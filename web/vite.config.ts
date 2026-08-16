@@ -27,13 +27,14 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        navigateFallback: '/index.html',
         runtimeCaching: [
           {
             urlPattern: /\/api\//,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',
-              networkTimeoutSeconds: 6,
+              networkTimeoutSeconds: 2,
               expiration: { maxEntries: 200, maxAgeSeconds: 86400 },
             },
           },

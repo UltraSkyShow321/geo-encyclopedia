@@ -14,6 +14,7 @@ import { registerMetaRoute, registerFavoritesRoutes } from './routes/meta.js';
 import { registerQuizRoute } from './routes/quiz.js';
 import { registerCardsRoutes } from './routes/cards.js';
 import { registerMapAssetsRoutes } from './routes/map-assets.js';
+import { registerOfflineRoute } from './routes/offline.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
@@ -57,6 +58,7 @@ registerFavoritesRoutes(app);
 registerQuizRoute(app);
 registerCardsRoutes(app);
 registerMapAssetsRoutes(app);
+registerOfflineRoute(app);
 
 app.get('/api/geojson', () => getGeoJson());
 

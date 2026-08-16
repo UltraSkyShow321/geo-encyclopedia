@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { api, type CountrySummary } from '../api';
+import { offline } from '../offline';
 import SearchBox from '../components/SearchBox.vue';
 import CountryCard from '../components/CountryCard.vue';
 import EChart from '../components/EChart.vue';
@@ -13,6 +14,7 @@ const auth = useAuthStore();
 const meta = ref<any>(null);
 const popular = ref<CountrySummary[]>([]);
 const topics = ref<any[]>([]);
+const offlineMode = ref(false);
 
 const populationChart = computed(() => {
   if (!popular.value.length) return {};
@@ -38,19 +40,45 @@ onMounted(async () => {
     meta.value = m;
     popular.value = c.items;
   } catch {
-    /* ignore */
+    // 离线兜底：从本地离线包计算
+    offlineMode.value = true;
+    const cs = (await offline.countries()) as any[];
+    const top = [...cs].sort((a, b) => (b.population || 0) - (a.population || 0)).slice(0, 10);
+    popular.value = top;
+    const continents = new Map<string, { name: string; count: number; population: number }>();
+    for (const c of cs) {
+      const rec = continents.get(c.continent) || { name: c.continent, count: 0, population: 0 };
+      rec.count++; rec.population += c.population || 0;
+      continents.set(c.continent, rec);
+    }
+    meta.value = {
+      totalCountries: cs.length,
+      totalTopics: (await offline.topics()).length,
+      totalDrafts: 0,
+      totalPopulation: cs.reduce((s: number, c: any) => s + (c.population || 0), 0),
+      continents: [...continents.values()],
+    };
   }
   try {
     const t = await api.topics();
     topics.value = t.categories;
   } catch {
-    /* ignore */
+    const ts = await offline.topics();
+    const cats = new Map<string, any[]>();
+    for (const t of ts) {
+      if (!cats.has(t.category)) cats.set(t.category, []);
+      cats.get(t.category)!.push({ slug: t.slug, title_zh: t.title_zh, title_en: t.title_en, category: t.category, summary: t.summary });
+    }
+    topics.value = [...cats.entries()].map(([category, items]) => ({ category, items }));
   }
 });
 </script>
 
 <template>
   <div class="space-y-10">
+    <div v-if="offlineMode" class="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 px-4 py-2 text-sm text-amber-700 dark:text-amber-300">
+      离线模式（数据来自本地缓存，联网后自动更新）
+    </div>
     <section class="text-center py-8 md:py-12">
       <h1 class="text-3xl md:text-5xl font-bold text-slate-900 dark:text-slate-100">
         {{ t('home.heroTitle') }}

@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { api, type SearchResult } from '../api';
+import { offline } from '../offline';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -33,6 +34,11 @@ watch(
       const r = await api.search(keyword);
       results.value = r.results;
       total.value = r.total;
+    } catch {
+      // 离线兜底
+      const rs = (await offline.search(keyword)) as any;
+      results.value = rs.map((r: any) => ({ ...r, score: 0, continent: '' }));
+      total.value = rs.length;
     } finally {
       searching.value = false;
     }
