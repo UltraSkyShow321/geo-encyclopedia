@@ -89,7 +89,7 @@ export function isOnline(): boolean {
 
 /** 下载并保存离线包（首次/更新） */
 export async function downloadOfflinePack(): Promise<{ ok: boolean; pack?: OfflinePack }> {
-  const res = await fetch(apiBase() + '/api/offline-pack');
+  const res = await fetch(apiBase() + '/api/offline-pack', { signal: AbortSignal.timeout(20000) });
   if (!res.ok) throw new Error(`离线包下载失败 HTTP ${res.status}`);
   const pack = (await res.json()) as OfflinePack;
   await idbPut(KEY, pack);

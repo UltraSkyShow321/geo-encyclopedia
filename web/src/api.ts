@@ -129,6 +129,7 @@ async function req<T>(url: string, init?: RequestInit): Promise<T> {
   try {
     res = await fetch(apiBase() + url, {
       headers: { 'content-type': 'application/json' },
+      signal: AbortSignal.timeout(8000),
       ...init,
     });
   } catch {
