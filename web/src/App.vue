@@ -22,11 +22,8 @@ onMounted(async () => {
         router.push({ name: 'settings', query: { first: '1' } });
       }
     }
-    return;
   }
-  // 原生移动端（Capacitor）：使用内置默认服务器地址（或已保存的自定义地址），无需设置
-  // 若默认地址不可用且未配置，仍提供设置页入口（用户可在设置页修改）
-  // 离线数据包：后台自动检查更新（联网时）
+  // 离线数据包：后台自动检查更新（联网时，所有平台）
   setTimeout(() => { checkOfflineUpdate().catch(() => {}); }, 3000);
 });
 </script>
