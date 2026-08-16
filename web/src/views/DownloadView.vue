@@ -13,9 +13,15 @@ const platforms = [
     link: `${RELEASE}/geo-encyclopedia-v1.0.0-android.apk`,
   },
   {
-    id: 'windows', icon: '🪟', name: 'Windows', status: 'ready',
+    id: 'windows', icon: '🪟', name: 'Windows（安装版）', status: 'ready',
     noteKey: 'download.windowsNote', stepsKey: 'download.windowsSteps',
     link: `${RELEASE}/geo-encyclopedia-v1.0.0-win-setup.exe`,
+    alt: `${RELEASE}/geo-encyclopedia-v1.0.0-win-portable.exe`,
+  },
+  {
+    id: 'windowsZip', icon: '📦', name: 'Windows（免安装 zip）', status: 'ready',
+    noteKey: 'download.windowsZipNote', stepsKey: 'download.windowsZipSteps',
+    link: `${RELEASE}/geo-encyclopedia-v1.0.0-win-portable.zip`,
   },
   {
     id: 'ios', icon: '🍎', name: 'iOS', status: 'pwa',
@@ -69,6 +75,9 @@ const steps = (key: string) => t(key).split('\n').filter((s) => s.trim());
         <p class="text-sm text-slate-500">{{ t(p.noteKey) }}</p>
         <a v-if="p.link" :href="p.link" target="_blank" class="block text-center px-4 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700">
           {{ t('download.download') }}
+        </a>
+        <a v-if="p.alt" :href="p.alt" target="_blank" class="block text-center px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+          {{ t('download.altDownload') }}
         </a>
         <ol class="text-xs text-slate-400 list-decimal pl-4 space-y-1">
           <li v-for="(s, i) in steps(p.stepsKey)" :key="i">{{ s }}</li>

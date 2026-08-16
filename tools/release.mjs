@@ -14,6 +14,7 @@ const assets = [
   'geo-encyclopedia-v1.0.0-android.apk',
   'geo-encyclopedia-v1.0.0-win-setup.exe',
   'geo-encyclopedia-v1.0.0-win-portable.exe',
+  'geo-encyclopedia-v1.0.0-win-portable.zip',
 ];
 
 async function gh(url, opts = {}) {
