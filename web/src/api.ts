@@ -75,6 +75,7 @@ export interface Card {
 declare global {
   interface Window {
     __GEO_NATIVE__?: boolean;
+    __GEO_ELECTRON__?: boolean;
   }
 }
 
@@ -83,10 +84,14 @@ export function isNativeEnv(): boolean {
   return window.__GEO_NATIVE__ === true;
 }
 
+/** Electron 桌面端：页面经本地代理(http://127.0.0.1)加载，走同源 /api */
+export function isElectron(): boolean {
+  return window.__GEO_ELECTRON__ === true;
+}
+
 export function apiBase(): string {
+  if (isElectron()) return '';
   if (!isNativeEnv()) return '';
-  // Electron 桌面端：页面经本地代理以 http 加载，走同源 /api，无需 base
-  if (typeof location !== 'undefined' && /^https?:$/.test(location.protocol)) return '';
   const saved = localStorage.getItem('geo-server');
   if (saved) return saved.replace(/\/+$/, '');
   // 未手动配置时使用内置默认服务器地址（用户下载即用）
@@ -97,16 +102,17 @@ export function setApiBase(url: string) {
   localStorage.setItem('geo-server', url.replace(/\/+$/, ''));
 }
 
-/** 资源地址：移动端(Capacitor)拼服务器地址；网页端与桌面端(本地代理根路径)用绝对路径 */
+/** 资源地址：Electron 走相对路径（本地代理根路径）；移动端(Capacitor)拼服务器地址；网页端用绝对路径 */
 export function assetUrl(p: string): string {
+  if (isElectron()) return p.replace(/^\//, '');
   const base = apiBase();
   if (isNativeEnv() && base) return base + p;
   return p;
 }
 
-/** 原生桌面端：把服务器地址通知本地代理（同源转发 /api） */
+/** Electron 桌面端：把服务器地址通知本地代理（同源转发 /api） */
 export async function notifyNativeProxy(url: string) {
-  if (!isNativeEnv() || typeof location === 'undefined' || !/^https?:$/.test(location.protocol)) return;
+  if (!isElectron()) return;
   try {
     await fetch('/__geo_server', {
       method: 'POST',

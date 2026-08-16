@@ -1,8 +1,8 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { api, apiBase, isNativeEnv, notifyNativeProxy, setApiBase } from '../api';
+import { api, apiBase, isElectron, isNativeEnv, notifyNativeProxy, setApiBase } from '../api';
 import { DEFAULT_SERVER } from '../config';
 import { downloadOfflinePack, getOfflineMeta, getOfflinePack } from '../offline';
 
@@ -61,7 +61,7 @@ async function test() {
     const ctrl = new AbortController();
     setTimeout(() => ctrl.abort(), 8000);
     // 桌面端：先通知本地代理，再走同源 /api 测试；网页端：直接请求目标站点
-    if (isNativeEnv() && /^https?:$/.test(location.protocol)) {
+    if (isElectron()) {
       await notifyNativeProxy(target);
       const res = await fetch('/api/meta', { signal: ctrl.signal });
       if (!res.ok) throw new Error(String(res.status));

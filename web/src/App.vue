@@ -1,8 +1,8 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useThemeStore } from './stores/theme';
-import { apiBase, isNativeEnv } from './api';
+import { apiBase, isElectron, isNativeEnv } from './api';
 import { checkOfflineUpdate } from './offline';
 import NavBar from './components/NavBar.vue';
 import FooterBar from './components/FooterBar.vue';
@@ -13,7 +13,7 @@ const router = useRouter();
 
 onMounted(async () => {
   // 原生桌面端（本地代理 http 模式）：内置默认地址已配好，直接使用；连接失败才提示设置页
-  if (isNativeEnv() && /^https?:$/.test(location.protocol)) {
+  if (isElectron()) {
     try {
       const r = await fetch('/api/meta', { signal: AbortSignal.timeout(5000) });
       if (!r.ok) throw new Error(String(r.status));
