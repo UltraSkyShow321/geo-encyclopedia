@@ -18,6 +18,7 @@ export interface OfflinePack {
   countries: OfflineCountry[];
   topics: OfflineTopic[];
   landforms: any[];
+  flags: Record<string, string>;
   geojson: { features: any[] };
 }
 
@@ -97,8 +98,8 @@ export async function downloadOfflinePack(): Promise<{ ok: boolean; pack?: Offli
   return { ok: true, pack };
 }
 
-/** 自动检查并更新（联网时调用；版本不同则静默下载） */
-export async function checkOfflineUpdate(): Promise<boolean> {
+/** 自动检查并更新（联网时调用；版本不同则静默下载）。失败自动重试 */
+export async function checkOfflineUpdate(attempt = 0): Promise<boolean> {
   if (!isOnline()) return false;
   try {
     const res = await fetch(apiBase() + '/api/offline-pack/version', { signal: AbortSignal.timeout(10000) });
@@ -109,6 +110,11 @@ export async function checkOfflineUpdate(): Promise<boolean> {
     await downloadOfflinePack();
     return true;
   } catch {
+    // 网络抖动重试一次
+    if (attempt < 1) {
+      await new Promise((r) => setTimeout(r, 5000));
+      return checkOfflineUpdate(attempt + 1);
+    }
     return false;
   }
 }

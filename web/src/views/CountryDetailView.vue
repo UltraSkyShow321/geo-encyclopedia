@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { api, assetUrl, type CountryDetail } from '../api';
-import { offline, countryOutlineSvg } from '../offline';
+import { getOfflinePack, offline, countryOutlineSvg } from '../offline';
 import EChart from '../components/EChart.vue';
 import WorldMap from '../components/WorldMap.vue';
 import { formatNumber, formatArea } from '../utils/format';
@@ -29,6 +29,25 @@ const flagPath = computed(() => {
   const c = country.value;
   return c?.iso_alpha2 ? assetUrl(`/flags/${c.iso_alpha2.toLowerCase()}.svg`) : '';
 });
+
+async function flagFallback(e: Event) {
+  const img = e.currentTarget as HTMLImageElement | null;
+  if (!img || img.dataset.fallback === '1') return;
+  const c = country.value;
+  if (!c?.iso_alpha2) return;
+  try {
+    const pack = await getOfflinePack();
+    const svg = pack?.flags?.[c.iso_alpha2.toLowerCase()];
+    if (svg) {
+      img.dataset.fallback = '1';
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+      return;
+    }
+  } catch {
+    /* ignore */
+  }
+  hideImg(e);
+}
 
 const gallery = computed(() => {
   const c = country.value;
@@ -192,7 +211,7 @@ async function makeOutline(): Promise<string> {
 
     <section class="flex flex-wrap items-start gap-5">
       <span class="relative w-28 h-[70px] rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm bg-slate-100 dark:bg-slate-800 shrink-0">
-        <img v-if="flagPath" :src="flagPath" :alt="country.name_en" class="w-full h-full object-cover" @error="hideImg" />
+        <img v-if="flagPath" :src="flagPath" :alt="country.name_en" class="w-full h-full object-cover" @error="flagFallback" />
         <span v-if="!flagPath" class="absolute inset-0 flex items-center justify-center text-5xl">{{ country.flag_emoji || '🌐' }}</span>
       </span>
       <div class="flex-1 min-w-[220px]">

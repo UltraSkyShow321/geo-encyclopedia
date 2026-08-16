@@ -98,6 +98,22 @@ export function registerOfflineRoute(app) {
       /* ignore */
     }
 
+    // 国旗数据（内嵌 SVG，离线/弱网也能显示）
+    const flags = {};
+    try {
+      const flagsDir = path.join(process.env.WEB_DIST || path.join(__dirname, '..', '..', '..', 'web', 'dist'), 'flags');
+      if (fs.existsSync(flagsDir)) {
+        for (const f of fs.readdirSync(flagsDir)) {
+          if (f.endsWith('.svg')) {
+            const iso2 = f.slice(0, 2);
+            flags[iso2] = fs.readFileSync(path.join(flagsDir, f), 'utf8');
+          }
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+
     return reply
       .type('application/json')
       .header('cache-control', 'no-store')
@@ -107,6 +123,7 @@ export function registerOfflineRoute(app) {
         countries,
         topics,
         landforms,
+        flags,
         geojson: { features },
       });
   });

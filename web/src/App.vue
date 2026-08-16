@@ -23,8 +23,10 @@ onMounted(async () => {
       }
     }
   }
-  // 离线数据包：后台自动检查更新（联网时，所有平台）
-  setTimeout(() => { checkOfflineUpdate().catch(() => {}); }, 3000);
+  // 离线数据包：立即检查并下载（内网连接时），失败自动重试
+  if (navigator.onLine !== false) {
+    checkOfflineUpdate().catch(() => {});
+  }
 });
 </script>
 
