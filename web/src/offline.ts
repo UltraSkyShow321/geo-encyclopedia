@@ -1,5 +1,5 @@
 // 离线数据包层：IndexedDB 存储 + 自动更新 + 离线查询接口
-import { apiBase } from './api';
+import { apiBase, switchToPublicServer } from './api';
 
 export interface OfflineCountry {
   slug: string; name_zh: string; name_en: string; flag_emoji: string;
@@ -89,7 +89,14 @@ export function isOnline(): boolean {
 
 /** 下载并保存离线包（首次/更新） */
 export async function downloadOfflinePack(): Promise<{ ok: boolean; pack?: OfflinePack }> {
-  const res = await fetch(apiBase() + '/api/offline-pack', { signal: AbortSignal.timeout(20000) });
+  let res: Response;
+  try {
+    res = await fetch(apiBase() + '/api/offline-pack', { signal: AbortSignal.timeout(20000) });
+  } catch {
+    // 内网不可达自动切外网重试一次
+    if (!switchToPublicServer()) throw new Error('离线包下载失败（网络不可达）');
+    res = await fetch(apiBase() + '/api/offline-pack', { signal: AbortSignal.timeout(30000) });
+  }
   if (!res.ok) throw new Error(`离线包下载失败 HTTP ${res.status}`);
   const pack = (await res.json()) as OfflinePack;
   await idbPut(KEY, pack);

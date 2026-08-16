@@ -1,4 +1,4 @@
-﻿import { DEFAULT_SERVER } from './config';
+﻿import { DEFAULT_SERVER, PUBLIC_SERVER } from './config';
 
 export interface CountrySummary {
   slug: string;
@@ -89,17 +89,28 @@ export function isElectron(): boolean {
   return window.__GEO_ELECTRON__ === true;
 }
 
+/** 当前生效的服务器地址（内网不可达时自动切换外网） */
+let usePublic = false;
+
 export function apiBase(): string {
   if (isElectron()) return '';
   if (!isNativeEnv()) return '';
   const saved = localStorage.getItem('geo-server');
   if (saved) return saved.replace(/\/+$/, '');
-  // 未手动配置时使用内置默认服务器地址（用户下载即用）
-  return DEFAULT_SERVER;
+  // 未手动配置时使用内置默认服务器地址（用户下载即用）；内网不可达自动切外网
+  return usePublic ? PUBLIC_SERVER : DEFAULT_SERVER;
 }
 
 export function setApiBase(url: string) {
   localStorage.setItem('geo-server', url.replace(/\/+$/, ''));
+}
+
+/** 切换备用外网服务器（内网失败时调用；返回是否切换成功） */
+export function switchToPublicServer(): boolean {
+  if (!isNativeEnv() || isElectron()) return false;
+  if (usePublic || localStorage.getItem('geo-server')) return false;
+  usePublic = true;
+  return true;
 }
 
 /** 资源地址：Electron 走相对路径（本地代理根路径）；移动端(Capacitor)拼服务器地址；网页端用绝对路径 */
@@ -133,7 +144,20 @@ async function req<T>(url: string, init?: RequestInit): Promise<T> {
       ...init,
     });
   } catch {
-    throw new Error('offline');
+    // 内网不可达时自动切换到外网备用地址重试一次
+    if (switchToPublicServer()) {
+      try {
+        res = await fetch(apiBase() + url, {
+          headers: { 'content-type': 'application/json' },
+          signal: AbortSignal.timeout(8000),
+          ...init,
+        });
+      } catch {
+        throw new Error('offline');
+      }
+    } else {
+      throw new Error('offline');
+    }
   }
   if (!res.ok) {
     if (res.status === 401) throw new Error('unauthorized');
