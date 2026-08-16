@@ -1,180 +1,124 @@
-﻿# 世界地理百科全书 (Geo-Encyclopedia)
+﻿# 🌍 世界地理百科全书
 
-个人学习用的世界地理百科网站：国家档案、自然地理/人文地理专题、互动地图、数据图表、小测验与记忆卡片。
-部署于家庭 NAS（绿联 UGOS Pro / Docker），通过 **绿联远程访问**（主）与 **Cloudflare Tunnel**（备）对外提供服务。
+一个随时可用的地理百科：**244 个国家档案、地理专题、互动地图、数据图表、小测验**。
+支持 **Windows / Android / iOS / iPad / macOS / 鸿蒙** 多端使用。
 
-## 快速开始（下载即用）
+> 个人项目 · 内容由 AI 生成并经人工校对 · 可部署在自己的 NAS/服务器上，数据完全属于你
 
-仓库已包含全部内容（244 国 + 9 专题，AI 生成 + 结构化数据），**无需任何 API Key** 即可运行。LLM Key 只在你想重新生成/扩充内容时才需要。
+---
 
-### 方式一：Node.js 直接运行（需 Node ≥ 22.5）
+## 🚀 快速开始（3 分钟）
 
-```bash
-git clone <本仓库地址>
-cd geo-encyclopedia
-copy .env.example .env        # 然后编辑 .env，设置 ADMIN_PASSWORD（登录密码）
+### 方式一：在线使用（最简单，不用安装）
 
-# 终端 1
-cd server && npm install && npm run dev    # 后端 http://127.0.0.1:3000
-
-# 终端 2
-cd web && npm install && npm run dev       # 前端 http://localhost:5173
-```
-
-或只跑生产模式：
-
-```bash
-cd web && npm install && npm run build     # 构建前端（server 会自动托管 dist）
-cd server && npm install && npm run start  # http://127.0.0.1:3000
-```
-
-### 方式二：Docker（推荐）
-
-```bash
-git clone <本仓库地址>
-cd geo-encyclopedia
-copy .env.example .env        # 设置 ADMIN_PASSWORD
-docker compose up -d --build  # http://127.0.0.1:3000
-```
-
-### 说明
-
-- 内容默认是**草稿状态**，需要登录（`ADMIN_PASSWORD`）才能看到全部 244 国；不登录只能看到已发布内容。要一键发布全部内容：`node tools/set-status.mjs published`
-- 地图瓦片来自 Esri 免费服务（无需 Key）；交互地图、PWA 离线缓存开箱即用
-- `.env` 不会提交到仓库（已在 .gitignore）
-
-## 功能
-
-- 国家/地区档案（244 国）：首都、人口、面积、货币、语言、旗帜、邻国等结构化数据 + 百科正文（AI 生成 + 人工校对）
-- 地理专题：自然地理（河流、山脉、沙漠、气候、板块…）/ 人文地理（世界遗产、城市、人口…）
-- 互动地图：Leaflet + OSM 瓦片，按大洲/人口/面积着色，点击跳转
-- 数据排行：ECharts 柱状图/散点图/饼图 + TOP 20 表格
-- 全文搜索：中英文关键词（SQLite FTS5 trigram，支持中文）
-- 学习功能：单用户登录、收藏 + 笔记、地理小测验、记忆卡片（间隔重复）
-- 深色模式、中英双语界面、PWA（手机可安装、离线看缓存）
-
-## 绿联 NAS 部署（推荐，长期稳定运行）\n\n完整图文步骤见 [docs/DEPLOY-NAS.md](docs/DEPLOY-NAS.md)：拷贝项目 → 建 .env → Compose 启动 → 多端连接 → 外网访问 → 备份。\n\n## 目录结构
+打开下面的网址就能用（手机/电脑浏览器都行）：
 
 ```
-geo-encyclopedia/
-├── content/            # 内容源（Markdown，这是唯一事实来源）
-│   ├── countries/      # 每国一个 .md（frontmatter 存结构化数据，正文存百科文本）
-│   └── topics/         # 地理专题
-├── server/             # Node.js (Fastify + node:sqlite) API + 静态托管
-├── web/                # Vue 3 + Vite + Tailwind 前端
-├── tools/              # 数据拉取 / AI 生成 / 状态管理脚本
-├── scripts/            # 备份脚本
-├── data/               # 运行时数据（SQLite/缓存，gitignore）
-└── docker-compose.yml  # NAS 一键部署
+http://你的NAS或服务器地址:3000
 ```
 
-## 本地开发
+想"像 App 一样"用？
 
-要求 Node.js ≥ 22.5（建议 24）。
+| 设备 | 操作 |
+|---|---|
+| **iPhone/iPad** | Safari 打开网址 → 分享 → **添加到主屏幕** |
+| **安卓/鸿蒙** | 用 Chrome/自带浏览器打开 → 菜单 → **安装应用/添加到主屏幕** |
+| **Windows/macOS** | Chrome/Edge 打开网址 → 地址栏右侧 → **安装** |
 
-```bash
-# 1. 后端
-cd server && npm install
-ADMIN_PASSWORD=你的密码 npm run dev        # http://127.0.0.1:3000
+### 方式二：安装客户端（体验更佳）
 
-# 2. 前端（另开终端）
-cd web && npm install
-npm run dev                                 # http://127.0.0.1:5173（/api 自动代理到 3000）
-```
+去 **Releases 页面**下载安装包：
 
-生产构建：
+👉 https://github.com/UltraSkyShow321/geo-encyclopedia/releases
 
-```bash
-cd web && npm run build     # 产物 dist/ 由 server 自动托管
-```
+| 平台 | 下载 | 说明 |
+|---|---|---|
+| Windows | `geo-encyclopedia-v1.0.0-win-setup.exe` | 安装版 |
+| Android / 鸿蒙4.x | `geo-encyclopedia-v1.0.0-android.apk` | 直接安装 |
+| iOS / iPad / macOS | 用上面的"添加到主屏幕"方式 | 无需安装包 |
 
-## 内容工作流（重要）
+**客户端首次打开**：输入服务器地址（方式一里的网址）→ 点"测试连接" → 开始使用。
 
-内容以 Markdown 文件为准，`status` 控制可见性：`draft`（草稿，仅管理员可见）→ `review`（校对中）→ `published`（公开）。
+### 登录
 
-```bash
-# 1. 拉取 244 国结构化数据（mledoze/countries + i18n-iso-countries + World Bank 人口）
-npm run fetch:data
+点右上角"登录"，输入管理员密码（部署时在 `.env` 里设置的 `ADMIN_PASSWORD`）。
+登录后可：**收藏国家、写学习笔记、使用小测验和记忆卡片**。
 
-# 2. 用 LLM 批量生成正文（需先在 .env 配置 OPENAI_API_KEY，见下）
-npm run generate:content          # 全部草稿
-npm run generate:content -- --limit 10    # 先试 10 个
-npm run generate:content -- --slug cn     # 单个
+---
 
-# 3. 校对：直接编辑 content/countries/cn.md（修改文字、数字、status）
+## 📖 使用向导
 
-# 4. 批量发布（可 --slug / --continent / --type 限定）
-node tools/set-status.mjs published --continent 亚洲
-node tools/set-status.mjs published
+### 首页
+搜索框 + 国家/大洲入口 + 人口 TOP10。
 
-# 5. 让服务重新导入（改文件后生效）
-curl -X POST -b cookie http://127.0.0.1:3000/api/admin/reimport   # 或重启容器
-```
+### 国家档案（核心内容）
+点任何国家 → 查看：
+- 🏳️ 国旗、首都、人口、面积、货币、语言、政体等 8 项信息
+- 🛰️ **卫星/地形/区划影像**、首都城区图、国家轮廓图
+- 📺 视频讲解链接（B站/YouTube）
+- 📊 同洲人口对比图表
 
-`.env`（从 `.env.example` 复制，**必须放在项目根目录**，即与 `docker-compose.yml` 同级）：
+### 互动地图
+- **区划 / 地形 / 卫星 / 高德** 四种底图切换
+- 地形图标注 **136 处地貌**（喜马拉雅、青藏高原、撒哈拉、马六甲海峡…点击有讲解）
+- 点国家直接跳转档案；搜索框可快速跳转到任意国家
 
-```
-ADMIN_PASSWORD=管理员密码（登录/收藏/笔记用）
-OPENAI_API_KEY=你的 LLM Key
-OPENAI_BASE_URL=https://api.deepseek.com/v1
-OPENAI_MODEL=deepseek-chat
-```
+### 排行
+人口 / 面积 TOP20 图表、人口×面积散点图、各洲人口占比。
 
-> 注意：
-> - `.env` 文件编码无所谓（UTF-8 带 BOM 也可以，服务端会自动处理）
-> - 若 `.env` 缺失或未设置 `ADMIN_PASSWORD`，服务会直接报错退出并提示，不会静默用默认密码
-> - 修改 `.env` 后需重启服务/容器才生效
+### 学习功能
+- **测验**：按大洲随机出题，错题一键加入记忆卡片
+- **记忆卡片**：间隔复习（忘了/记住了）
+- **收藏+笔记**：每个国家可以收藏并写学习笔记
 
-## NAS 部署（绿联 UGOS Pro + Docker）
+### 其他
+深色模式 🌙 · 中英双语切换 · 离线缓存（PWA）
 
-1. 将整个项目目录复制到 NAS（如 `/volume1/docker/geo-encyclopedia`）
-2. 创建 `.env` 并设置 `ADMIN_PASSWORD`（与本地开发共用同一套 `content/` 可选）
-3. 绿联 Docker 应用（或 SSH）执行：
+---
 
-```bash
-cd /volume1/docker/geo-encyclopedia
-docker compose build
-docker compose up -d
-```
+## 🖥️ 自己部署（NAS / 服务器，可选）
 
-4. **外网访问（主链路 · 绿联远程访问）**：UGOS Pro「远程访问」→ 添加端口映射 `3000` → 生成公网 HTTPS 地址，浏览器收藏即可（多端通用）。
-5. **外网访问（备链路 · Cloudflare Tunnel，可选）**：
-   - 在 Cloudflare 面板创建 Tunnel，复制 token 到 `.env` 的 `TUNNEL_TOKEN`
-   - `docker compose --profile tunnel up -d`
-   - 在 CF 面板把域名路由指向 `http://app:3000`
-6. 访问保护建议：CF Tunnel 可再叠加 Access 登录；绿联地址仅自己使用。
+把网站部署到自己的设备上，随时访问、数据自持：
 
-### 修改内容后生效
+**部署到绿联/群晖 NAS**（推荐，7×24 运行）：
+1. 拷贝本项目到 NAS（如 `/volume1/docker/geo-encyclopedia`）
+2. 建 `.env` 文件，设置管理员密码（参考 `.env.example`）
+3. Docker 里启动（绿联 Docker → 项目 → Compose，或 SSH 执行 `docker compose build && docker compose up -d`）
+4. 浏览器访问 `http://NAS的IP:3000`，完成！
 
-编辑 `content/` 下 md 后，调用 `POST /api/admin/reimport`（需登录态）或 `docker compose restart`。
+> NAS 网络无法拉取 Docker 基础镜像时，参考 [docs/DEPLOY-NAS.md](docs/DEPLOY-NAS.md) 的离线方案；
+> 完整部署与备份细节见 [docs/INSTALL-GUIDE.md](docs/INSTALL-GUIDE.md)。
 
-### 备份
+**外网访问**：绿联控制面板 → 远程访问 → 映射 3000 端口，即可在外网使用。
 
-```bash
-powershell -ExecutionPolicy Bypass -File scripts/backup.ps1   # 打包 content+data+.env
-```
-或把该脚本加入绿联定时任务；也可直接用绿联自带的文件快照/备份功能对 `content/` 与 `data/` 目录做定时备份。
+---
 
-## API 概览
+## ⚙️ 高级（内容管理与定制）
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | /api/meta | 站点统计 |
-| GET | /api/countries?continent=&sort=&q=&includeDrafts= | 国家列表 |
-| GET | /api/countries/:slug | 国家详情（含渲染后正文） |
-| GET | /api/topics, /api/topics/:slug | 专题 |
-| GET | /api/search?q= | 全文搜索 |
-| GET | /api/geojson | 世界地图边界（含国家属性） |
-| GET | /api/quiz?continent=&count= | 随机测验题 |
-| POST | /api/auth/login|logout | 登录/退出（密码=ADMIN_PASSWORD） |
-| GET/PUT/DELETE | /api/favorites… | 收藏与笔记 |
-| GET/POST | /api/cards… | 记忆卡片 |
-| POST | /api/admin/reimport | 重新导入内容（需登录） |
+- **修改内容**：编辑 `content/countries/*.md`（Markdown 文件）→ 重新导入后生效
+- **批量生成内容**：配置 `.env` 的 LLM Key 后运行 `npm run generate:content`
+- **技术文档**：开发者请看 [README 技术版](docs/DEV.md)（含 API 列表、架构、本地开发）
 
-## 数据来源
+---
 
-- 国家基础数据：[mledoze/countries](https://github.com/mledoze/countries)（MIT）
-- 中文国名：[i18n-iso-countries](https://github.com/neuland/jade-countries)（CC BY 4.0 数据）
-- 人口数据：World Bank Open Data
-- 地图瓦片：Esri（区划 World_Street_Map / 地形 World_Terrain_Base / 卫星 World_Imagery，均无需 Key；OSM/CARTO 瓦片在国内网络不可达故未采用）
-- 边界数据：[world-atlas](https://github.com/topojson/world-atlas)
+## 📜 数据来源与许可
+
+- 国家数据：mledoze/countries、i18n-iso-countries、World Bank
+- 地图：Esri / 高德 / OpenStreetMap
+- 项目代码：MIT License
+
+---
+
+## ❓ 常见问题
+
+| 问题 | 答案 |
+|---|---|
+| 客户端提示"连接失败" | 检查服务器地址（局域网用 `http://NAS的IP:3000`）；确认服务在运行 |
+| 高德地图显示"未配置" | 在服务器 `.env` 填 `AMAP_KEY` 和 `AMAP_SECURITY_CODE`（lbs.amap.com 免费注册）|
+| 内容不显示/是旧内容 | 修改 content 后访问 `/api/admin/reimport` 或重启容器 |
+| 忘记管理员密码 | 改 `.env` 的 `ADMIN_PASSWORD` 后重启容器 |
+| 想重置一切 | `docker compose down && docker compose up -d`（数据卷不丢）|
+
+---
+
+**遇到问题？** 提 Issue：https://github.com/UltraSkyShow321/geo-encyclopedia/issues

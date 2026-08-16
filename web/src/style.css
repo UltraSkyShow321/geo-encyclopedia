@@ -15,6 +15,14 @@ body {
   @apply bg-slate-50 text-slate-800 antialiased dark:bg-slate-950 dark:text-slate-200;
 }
 
+/* 移动端安全区适配（状态栏/底部手势条不被遮挡） */
+#app {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
 .leaflet-container {
   font: inherit;
   background: #cbd5e1;
