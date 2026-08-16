@@ -25,6 +25,7 @@ const saving = ref(false);
 const offlineMode = ref(false);
 const offlineOutline = ref('');
 
+const flagFailed = ref(false);
 const flagPath = computed(() => {
   const c = country.value;
   return c?.iso_alpha2 ? assetUrl(`/flags/${c.iso_alpha2.toLowerCase()}.svg`) : '';
@@ -46,7 +47,8 @@ async function flagFallback(e: Event) {
   } catch {
     /* ignore */
   }
-  hideImg(e);
+  img.style.display = 'none';
+  flagFailed.value = true;
 }
 
 const gallery = computed(() => {
@@ -211,8 +213,8 @@ async function makeOutline(): Promise<string> {
 
     <section class="flex flex-wrap items-start gap-5">
       <span class="relative w-28 h-[70px] rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm bg-slate-100 dark:bg-slate-800 shrink-0">
-        <img v-if="flagPath" :src="flagPath" :alt="country.name_en" class="w-full h-full object-cover" @error="flagFallback" />
-        <span v-if="!flagPath" class="absolute inset-0 flex items-center justify-center text-5xl">{{ country.flag_emoji || '🌐' }}</span>
+        <img v-if="flagPath && !flagFailed" :src="flagPath" :alt="country.name_en" class="w-full h-full object-cover" @error="flagFallback" />
+        <span v-if="!flagPath || flagFailed" class="absolute inset-0 flex items-center justify-center text-5xl">{{ country.flag_emoji || '🌐' }}</span>
       </span>
       <div class="flex-1 min-w-[220px]">
         <h1 class="text-3xl font-bold">{{ country.name_zh }}</h1>

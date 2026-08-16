@@ -101,7 +101,8 @@ export function registerOfflineRoute(app) {
     // 国旗数据（内嵌 SVG，离线/弱网也能显示）
     const flags = {};
     try {
-      const flagsDir = path.join(process.env.WEB_DIST || path.join(__dirname, '..', '..', '..', 'web', 'dist'), 'flags');
+      const webDist = process.env.WEB_DIST || path.join(process.cwd(), 'web', 'dist');
+      const flagsDir = path.join(webDist, 'flags');
       if (fs.existsSync(flagsDir)) {
         for (const f of fs.readdirSync(flagsDir)) {
           if (f.endsWith('.svg')) {

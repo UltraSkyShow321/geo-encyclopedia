@@ -4,6 +4,25 @@ import App from './App.vue';
 import { router } from './router';
 import { i18n } from './i18n';
 import './style.css';
+import { isNativeEnv, isElectron } from './api';
+
+// 原生 App 系统返回手势：有历史则返回上一页，否则退出应用
+async function setupBackGesture() {
+  if (!isNativeEnv() || isElectron()) return;
+  try {
+    const { App } = await import('@capacitor/app');
+    await App.addListener('backButton', () => {
+      const { name, fullPath } = router.currentRoute.value;
+      if (name === 'home' || window.history.length <= 1) {
+        App.exitApp();
+      } else {
+        router.back();
+      }
+    });
+  } catch {
+    /* 非原生环境忽略 */
+  }
+}
 
 // PWA Service Worker 仅在 http(s) 下注册；file://（Electron 桌面版）下必须跳过，否则启动即崩溃
 if (typeof location !== 'undefined' && /^https?:$/.test(location.protocol)) {
@@ -20,3 +39,4 @@ app.use(createPinia());
 app.use(router);
 app.use(i18n);
 app.mount('#app');
+setupBackGesture();

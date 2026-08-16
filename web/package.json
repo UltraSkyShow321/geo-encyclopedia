@@ -10,6 +10,7 @@
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
+    "@capacitor/app": "^7.1.2",
     "echarts": "^5.6.0",
     "leaflet": "^1.9.4",
     "pinia": "^3.0.1",
