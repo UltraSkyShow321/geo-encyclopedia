@@ -4,9 +4,9 @@ services:
     image: geo-encyclopedia:latest
     container_name: geo-encyclopedia
     restart: always
-    # 仅监听本机回环，外网访问走穿透链路（绿联远程访问 / Cloudflare Tunnel）
+    # 监听所有网卡: 局域网设备可直接访问 NAS:3000；外网走穿透链路（绿联远程访问/CF Tunnel）
     ports:
-      - "127.0.0.1:3000:3000"
+      - "3000:3000"
     environment:
       PORT: "3000"
     volumes:
