@@ -21,6 +21,11 @@ if (!html.includes('__GEO_NATIVE__')) {
   fs.writeFileSync(indexPath, html, 'utf8');
 }
 
+// 内置默认服务器地址配置（构建时可覆盖）
+const defaultServer = process.env.VITE_DEFAULT_SERVER || 'http://192.168.31.114:3000';
+fs.writeFileSync(path.join(webDist, 'config.json'), JSON.stringify({ defaultServer }));
+console.log('内置服务器地址:', defaultServer);
+
 console.log('== 3/3 同步到 Android ==');
 execSync('npx cap sync android', { cwd: here, stdio: 'inherit' });
 console.log('同步完成');

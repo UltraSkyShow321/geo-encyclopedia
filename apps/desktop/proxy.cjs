@@ -6,7 +6,15 @@ const path = require('node:path');
 const { Readable } = require('node:stream');
 
 const WEB_DIR = path.join(__dirname, 'web');
-let geoServer = '';
+
+// 内置默认服务器地址（从 web/config.json 读取；构建时由 sync 脚本生成）
+let DEFAULT_SERVER = '';
+try {
+  const cfg = JSON.parse(fs.readFileSync(path.join(WEB_DIR, 'config.json'), 'utf8'));
+  DEFAULT_SERVER = cfg.defaultServer || '';
+} catch { /* 无配置时默认空 */ }
+
+let geoServer = DEFAULT_SERVER; // 默认直连内置地址；设置页可修改
 
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',

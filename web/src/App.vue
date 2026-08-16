@@ -12,10 +12,10 @@ useThemeStore().apply();
 const router = useRouter();
 
 onMounted(async () => {
-  // 原生桌面端（本地代理 http 模式）：探测 /api 是否已配置，未配置则引导到设置页
+  // 原生桌面端（本地代理 http 模式）：内置默认地址已配好，直接使用；连接失败才提示设置页
   if (isNativeEnv() && /^https?:$/.test(location.protocol)) {
     try {
-      const r = await fetch('/api/meta');
+      const r = await fetch('/api/meta', { signal: AbortSignal.timeout(5000) });
       if (!r.ok) throw new Error(String(r.status));
     } catch {
       if (router.currentRoute.value.name !== 'settings') {
@@ -24,10 +24,8 @@ onMounted(async () => {
     }
     return;
   }
-  // 原生移动端（Capacitor）首次启动：未配置服务器地址 → 引导到设置页
-  if (isNativeEnv() && !apiBase() && router.currentRoute.value.name !== 'settings') {
-    router.push({ name: 'settings', query: { first: '1' } });
-  }
+  // 原生移动端（Capacitor）：使用内置默认服务器地址（或已保存的自定义地址），无需设置
+  // 若默认地址不可用且未配置，仍提供设置页入口（用户可在设置页修改）
   // 离线数据包：后台自动检查更新（联网时）
   setTimeout(() => { checkOfflineUpdate().catch(() => {}); }, 3000);
 });

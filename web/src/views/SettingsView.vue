@@ -3,16 +3,18 @@ import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { api, apiBase, isNativeEnv, notifyNativeProxy, setApiBase } from '../api';
+import { DEFAULT_SERVER } from '../config';
 import { downloadOfflinePack, getOfflineMeta, getOfflinePack } from '../offline';
 
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 
-const url = ref(apiBase());
+const url = ref(apiBase() || DEFAULT_SERVER);
 const status = ref<'idle' | 'testing' | 'ok' | 'fail'>('idle');
 const firstTime = computed(() => route.query.first === '1');
 const native = ref(false);
+const usingDefault = ref(!localStorage.getItem('geo-server'));
 
 // 离线包状态
 const packInfo = ref<{ has: boolean; version?: number; updated?: number; size?: string }>({ has: false });
@@ -80,7 +82,15 @@ function save() {
   const target = url.value.trim().replace(/\/+$/, '');
   setApiBase(target);
   notifyNativeProxy(target);
+  usingDefault.value = false;
   if (firstTime.value) router.push('/');
+}
+
+function resetDefault() {
+  url.value = DEFAULT_SERVER;
+  localStorage.removeItem('geo-server');
+  usingDefault.value = true;
+  notifyNativeProxy(DEFAULT_SERVER);
 }
 </script>
 
@@ -90,15 +100,13 @@ function save() {
 
     <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 space-y-3">
       <p class="text-sm text-slate-500">{{ t('settings.hint') }}</p>
+      <div class="text-xs text-emerald-600" v-if="usingDefault">✅ 当前使用内置默认服务器（无需配置即可使用）</div>
       <div class="flex flex-wrap gap-2">
         <button class="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700" @click="url = 'http://127.0.0.1:3000'">
           💻 本机 http://127.0.0.1:3000
         </button>
-        <button class="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700" @click="url = 'http://192.168.1.100:3000'">
-          🖥️ 局域网 NAS（示例）
-        </button>
-        <button class="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700" @click="url = 'https://你的域名或绿联穿透地址'">
-          🌐 外网地址（示例）
+        <button class="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700" @click="resetDefault">
+          ↩️ 恢复默认（{{ DEFAULT_SERVER }}）
         </button>
       </div>
       <label class="block">

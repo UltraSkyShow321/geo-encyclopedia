@@ -1,3 +1,5 @@
+﻿import { DEFAULT_SERVER } from './config';
+
 export interface CountrySummary {
   slug: string;
   type: string;
@@ -86,7 +88,9 @@ export function apiBase(): string {
   // Electron 桌面端：页面经本地代理以 http 加载，走同源 /api，无需 base
   if (typeof location !== 'undefined' && /^https?:$/.test(location.protocol)) return '';
   const saved = localStorage.getItem('geo-server');
-  return saved ? saved.replace(/\/+$/, '') : '';
+  if (saved) return saved.replace(/\/+$/, '');
+  // 未手动配置时使用内置默认服务器地址（用户下载即用）
+  return DEFAULT_SERVER;
 }
 
 export function setApiBase(url: string) {
