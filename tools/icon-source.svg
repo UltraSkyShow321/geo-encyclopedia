@@ -26,7 +26,10 @@
     </filter>
     <clipPath id="globe"><circle cx="256" cy="272" r="148"/></clipPath>
   </defs>
+
   <rect x="0" y="0" width="512" height="512" rx="112" ry="112" fill="url(#bg)"/>
+
+  <!--FG_START-->
   <g filter="url(#sh)">
     <circle cx="256" cy="272" r="148" fill="url(#earth)"/>
   </g>
@@ -65,4 +68,5 @@
     <circle cx="0" cy="2" r="10" fill="#1e3a8a"/>
     <circle cx="0" cy="2" r="6.5" fill="#ffffff"/>
   </g>
+  <!--FG_END-->
 </svg>

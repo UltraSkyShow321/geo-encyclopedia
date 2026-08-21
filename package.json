@@ -10,5 +10,8 @@
     "fetch:data": "node tools/fetch-country-data.mjs",
     "generate:content": "node --env-file-if-exists=.env tools/generate-content.mjs",
     "icons": "node tools/make-icons.mjs"
+  },
+  "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2"
   }
 }
