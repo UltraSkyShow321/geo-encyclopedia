@@ -30,6 +30,14 @@ function findFeature50(slugOrIso) {
   return feature ? { feature, item } : null;
 }
 
+// 收集所有外环（保持原始经度，不做 +360 位移）
+function rawOuterRings(geom) {
+  const rings = [];
+  if (geom.type === 'Polygon') rings.push(geom.coordinates[0]);
+  else if (geom.type === 'MultiPolygon') geom.coordinates.forEach((p) => rings.push(p[0]));
+  return rings;
+}
+
 // 收集所有外环（含日期线切开的多边形），返回按 +360 位移后互不跨越的环
 function outerRings(geom) {
   const rings = [];
@@ -213,15 +221,29 @@ export function registerMapAssetsRoutes(app) {
       }
       b = { xmin: clng - span, xmax: clng + span, ymin: clat - span, ymax: clat + span };
     } else {
-      rings = outerRings(hit.feature.geometry);
-      const bb = boundsOf(rings);
+      // 用原始坐标算 bbox（不做 +360 位移）。
+      // 位移是为绘制轮廓用的，会让美国(-179..-66)变成(181..294)，导致 ArcGIS bbox 被截断成错误区域
+      const rawRings = rawOuterRings(hit.feature.geometry);
+      const bb = boundsOf(rawRings);
+      let { xmin, xmax } = bb;
+      // 真正跨日期线的国家（如俄罗斯/斐济/基里巴斯）：原始坐标同时含接近 ±180 的值且跨度 > 180，
+      // 以国家人口/面积主体所在侧为准：把 >180 或 <-180 的环平移到连续一侧
+      if (xmax - xmin > 180) {
+        // 尝试整体 -360（把东经部分移到西侧），取跨度更小的方案
+        let minX2 = Infinity, maxX2 = -Infinity;
+        for (const r of rawRings) {
+          const shifted = r.every(([x]) => x > 0) ? r.map(([x, y]) => [x - 360, y]) : r;
+          for (const [x] of shifted) { if (x < minX2) minX2 = x; if (x > maxX2) maxX2 = x; }
+        }
+        if (maxX2 - minX2 < xmax - xmin) { xmin = minX2; xmax = maxX2; }
+      }
       const pad = 0.12;
-      const w = Math.max(bb.xmax - bb.xmin, 0.5);
+      const w = Math.max(xmax - xmin, 0.5);
       const h = Math.max(bb.ymax - bb.ymin, 0.5);
       b = {
-        xmin: Math.max(-180, bb.xmin - w * pad),
+        xmin: Math.max(-180, xmin - w * pad),
         ymin: Math.max(-85, bb.ymin - h * pad),
-        xmax: Math.min(180, bb.xmax + w * pad),
+        xmax: Math.min(180, xmax + w * pad),
         ymax: Math.min(85, bb.ymax + h * pad),
       };
     }

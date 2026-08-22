@@ -301,7 +301,7 @@ function paint(geojson: any) {
   if (props.highlight) {
     highlightLayer?.remove();
     highlightLayer = L.geoJSON(geojson, {
-      filter: (f: any) => String(f.properties.iso_numeric) === String(props.highlight),
+      filter: (f: any) => String(f.properties.iso_numeric ?? '').padStart(3, '0') === String(props.highlight ?? '').padStart(3, '0'),
       style: { color: '#f59e0b', weight: 2.5, fillColor: 'transparent', fillOpacity: 0 },
     }).addTo(map!);
     if (props.zoomToHighlight) {

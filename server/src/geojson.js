@@ -32,7 +32,7 @@ export function ensureGeoJson() {
   for (const row of db.prepare('SELECT slug, data FROM items WHERE type = ?').all('country')) {
     try {
       const d = JSON.parse(row.data);
-      if (d.iso_numeric) itemMap.set(String(d.iso_numeric), d);
+      if (d.iso_numeric) itemMap.set(String(d.iso_numeric).padStart(3, '0'), d);
       // 名称兜底映射（部分领土无 ISO 数字编码）
       if (d.name_en) itemsByName.set(norm(d.name_en), d);
       if (d.name_zh) itemsByName.set(norm(d.name_zh), d);
@@ -96,6 +96,9 @@ export function ensureGeoJson() {
     // ISO 数字码统一补零到 3 位（巴西=076，但 topojson id 是数字 76）
     const id = String(f.id ?? '').padStart(3, '0');
     let item = itemMap.get(id);
+    if (!item && f.id != null) {
+      item = itemMap.get(String(f.id)); // 兜底：DB 未补零的旧键
+    }
     if (!item) {
       // 名称兜底：部分国家/地区无 ISO 数字编码（如科索沃）
       const rawName = String(f.properties?.name ?? '');
