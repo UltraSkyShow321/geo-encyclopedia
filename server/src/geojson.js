@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { gzipSync } from 'node:zlib';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { db } from './db.js';
@@ -127,4 +128,11 @@ export function ensureGeoJson() {
 
 export function getGeoJson() {
   return featureCollection ?? ensureGeoJson();
+}
+
+// gzip 缓存（数据不变时复用，geojson 外网传输 3.7MB -> ~1MB）
+let geoJsonGz = null;
+export function getGeoJsonGz() {
+  if (!geoJsonGz) geoJsonGz = gzipSync(Buffer.from(JSON.stringify(getGeoJson())));
+  return geoJsonGz;
 }

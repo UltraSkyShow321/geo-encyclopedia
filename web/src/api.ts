@@ -135,12 +135,12 @@ export async function notifyNativeProxy(url: string) {
   }
 }
 
-async function req<T>(url: string, init?: RequestInit): Promise<T> {
+async function req<T>(url: string, init?: RequestInit, timeoutMs = 8000): Promise<T> {
   let res: Response;
   try {
     res = await fetch(apiBase() + url, {
       headers: { 'content-type': 'application/json' },
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(timeoutMs),
       ...init,
     });
   } catch {
@@ -149,7 +149,7 @@ async function req<T>(url: string, init?: RequestInit): Promise<T> {
       try {
         res = await fetch(apiBase() + url, {
           headers: { 'content-type': 'application/json' },
-          signal: AbortSignal.timeout(8000),
+          signal: AbortSignal.timeout(timeoutMs),
           ...init,
         });
       } catch {
@@ -184,7 +184,7 @@ export const api = {
   topics: () => req<{ categories: { category: string; items: TopicSummary[] }[]; total: number }>('/api/topics'),
   topic: (slug: string) => req<any>(`/api/topics/${encodeURIComponent(slug)}`),
   search: (q: string) => req<{ q: string; total: number; results: SearchResult[] }>(`/api/search?q=${encodeURIComponent(q)}`),
-  geojson: () => req<any>('/api/geojson'),
+  geojson: () => req<any>('/api/geojson', undefined, 30000), // 大资源：外网传输放宽超时
   landforms: () => req<any[]>('/api/landforms'),
   config: () => req<{ amapKey: string; amapSecurityCode: string }>('/api/config'),
   countryAt: (lat: number, lng: number) => req<{ slug: string | null; name_zh: string | null }>(`/api/country-at?lat=${lat}&lng=${lng}`),

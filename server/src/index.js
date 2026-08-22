@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import './env.js';
 import { importContent } from './importer.js';
-import { ensureGeoJson, getGeoJson } from './geojson.js';
+import { ensureGeoJson, getGeoJson, getGeoJsonGz } from './geojson.js';
 import { isAuthed, loginRoute, logoutRoute, meRoute } from './auth.js';
 import { registerCountriesRoutes } from './routes/countries.js';
 import { registerTopicsRoutes } from './routes/topics.js';
@@ -60,7 +60,17 @@ registerCardsRoutes(app);
 registerMapAssetsRoutes(app);
 registerOfflineRoute(app);
 
-app.get('/api/geojson', () => getGeoJson());
+// geojson：大响应手动 gzip（外网传输提速 3-5 倍）
+app.get('/api/geojson', (req, reply) => {
+  if (String(req.headers['accept-encoding'] || '').includes('gzip')) {
+    return reply
+      .type('application/json')
+      .header('content-encoding', 'gzip')
+      .header('cache-control', 'public, max-age=86400')
+      .send(getGeoJsonGz());
+  }
+  return reply.type('application/json').header('cache-control', 'public, max-age=86400').send(getGeoJson());
+});
 
 app.post('/api/admin/reimport', (req, reply) => {
   if (!req.authed) {
