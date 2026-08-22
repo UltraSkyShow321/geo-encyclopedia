@@ -37,8 +37,18 @@ function foreSVG(scale, dy = 0) {
   </svg>`;
 }
 
-// 4) 启动屏图（透明背景，内容居中较大）
-const splashSVG = foreSVG(0.82);
+// 4) adaptive 背景（全幅渐变，与桌面/Web 图标背景一致）
+const bgOnlySVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  ${defs}
+  <rect x="-32" y="-32" width="576" height="576" fill="url(#bg)"/>
+</svg>`;
+
+// 5) 启动屏（深蓝满屏底 + 居中前景，避免白底）
+const splashSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  ${defs}
+  <rect x="-32" y="-32" width="576" height="576" fill="#1e1b4b"/>
+  <g transform="scale(0.82) translate(46.5 46.5)">${fg}</g>
+</svg>`;
 
 function render(svgStr, size) {
   const res = new Resvg(svgStr, { fitTo: { mode: 'width', value: size } });
@@ -62,7 +72,7 @@ fs.writeFileSync(path.join(webIcons, 'icon.svg'), fullSVG.replace(/viewBox="0 0 
 write(path.join(webIcons, 'icon-192.png'), render(fullSVG, 192));
 write(path.join(webIcons, 'icon-512.png'), render(fullSVG, 512));
 write(path.join(webIcons, 'apple-touch-icon.png'), render(fullSVG, 180));
-fs.writeFileSync(path.join(webIcons, 'favicon.svg'), `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#312e81"/><circle cx="256" cy="272" r="148" fill="#3b82f6"/></svg>`);
+fs.writeFileSync(path.join(webIcons, 'favicon.svg'), fullSVG);
 
 // ===== Desktop (Electron) =====
 const desktopBuild = path.join(root, 'apps', 'desktop', 'build');
@@ -83,24 +93,21 @@ for (const [d, s] of Object.entries(dpi)) {
 for (const [d, s] of Object.entries(fgDpi)) {
   const dir = path.join(res, `mipmap-${d}`);
   write(path.join(dir, 'ic_launcher_foreground.png'), render(foreSVG(0.62), s));
+  write(path.join(dir, 'ic_launcher_background.png'), render(bgOnlySVG, s));
 }
-// adaptive 描述（anydpi-v26）
+// adaptive 描述（anydpi-v26）：背景用同款渐变图，与桌面/Web 图标观感一致
 const any = path.join(res, 'mipmap-anydpi-v26');
 fs.mkdirSync(any, { recursive: true });
 const adaptive = `<?xml version="1.0" encoding="utf-8"?>
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-  <background android:drawable="@color/ic_launcher_background"/>
+  <background android:drawable="@mipmap/ic_launcher_background"/>
   <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
 </adaptive-icon>`;
 fs.writeFileSync(path.join(any, 'ic_launcher.xml'), adaptive);
 fs.writeFileSync(path.join(any, 'ic_launcher_round.xml'), adaptive);
-// 背景色资源
-const vals = path.join(res, 'values');
-fs.mkdirSync(vals, { recursive: true });
-fs.writeFileSync(path.join(vals, 'ic_launcher_background.xml'), `<?xml version="1.0" encoding="utf-8"?>
-<resources>
-  <color name="ic_launcher_background">#1E1B4B</color>
-</resources>`);
+// 移除旧的纯色背景资源
+const oldColor = path.join(res, 'values', 'ic_launcher_background.xml');
+if (fs.existsSync(oldColor)) fs.rmSync(oldColor);
 
 // splash（各 dpi 横/竖）
 const splash = {
