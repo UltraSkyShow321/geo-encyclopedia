@@ -56,6 +56,7 @@ const layers = computed(() => Object.entries(BASEMAPS).map(([id, v]) => ({ id: i
 let map: L.Map | undefined;
 let geoLayer: L.GeoJSON | undefined;
 let highlightLayer: L.GeoJSON | undefined;
+let highlightMarker: L.CircleMarker | undefined;
 let tileLayer: L.TileLayer | undefined;
 let overlayLayer: L.TileLayer | undefined;
 let overlayLayer2: L.TileLayer | undefined;
@@ -302,11 +303,24 @@ function paint(geojson: any) {
     highlightLayer?.remove();
     highlightLayer = L.geoJSON(geojson, {
       filter: (f: any) => String(f.properties.iso_numeric ?? '').padStart(3, '0') === String(props.highlight ?? '').padStart(3, '0'),
-      style: { color: '#f59e0b', weight: 2.5, fillColor: 'transparent', fillOpacity: 0 },
+      style: { color: '#f59e0b', weight: 2.5, fillColor: '#f59e0b', fillOpacity: 0.28 },
     }).addTo(map!);
     if (props.zoomToHighlight) {
-      map?.fitBounds(highlightLayer.getBounds().pad(0.1), { maxZoom: 4 });
+      // 小国也需要放大到可见级别（maxZoom 10）；bounds 无效时保持世界视图
+      const b = highlightLayer.getBounds();
+      if (b.isValid()) {
+        map?.fitBounds(b.pad(0.1), { maxZoom: 10 });
+        // 小国在低 zoom 下几乎不可见：加一个脉冲点标记位置
+        const c = b.getCenter();
+        highlightMarker?.remove();
+        highlightMarker = L.circleMarker([c.lat, c.lng], {
+          radius: 7, color: '#f59e0b', weight: 2.5, fillColor: '#f59e0b', fillOpacity: 0.9,
+        }).addTo(map!);
+      }
     }
+  } else {
+    highlightMarker?.remove();
+    highlightMarker = undefined;
   }
 }
 
