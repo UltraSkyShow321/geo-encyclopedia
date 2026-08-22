@@ -300,7 +300,7 @@ async function makeOutline(): Promise<string> {
 
     <section>
       <h2 class="text-xl font-semibold mb-3">{{ t('common.locationOnMap') }}</h2>
-      <WorldMap :highlight="country.iso_numeric" zoom-to-highlight height="420px" />
+      <WorldMap :highlight="country.iso_numeric" :center="country.coordinates ?? null" zoom-to-highlight height="420px" />
     </section>
 
     <section>

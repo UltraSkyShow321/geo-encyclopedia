@@ -16,8 +16,9 @@ const props = withDefaults(
     highlight?: string;
     zoomToHighlight?: boolean;
     height?: string;
+    center?: [number, number] | null;
   }>(),
-  { basemap: 'boundaries', showBasemapSwitcher: false, highlight: '', zoomToHighlight: false, height: '520px' }
+  { basemap: 'boundaries', showBasemapSwitcher: false, highlight: '', zoomToHighlight: false, height: '520px', center: null }
 );
 
 const { t } = useI18n();
@@ -308,7 +309,8 @@ function paint(geojson: any) {
     if (props.zoomToHighlight) {
       // 小国也需要放大到可见级别（maxZoom 10）；bounds 无效时保持世界视图
       const b = highlightLayer.getBounds();
-      if (b.isValid()) {
+      const span = b.isValid() ? b.getEast() - b.getWest() : 0;
+      if (b.isValid() && span <= 200) {
         map?.fitBounds(b.pad(0.1), { maxZoom: 10 });
         // 小国在低 zoom 下几乎不可见：加一个脉冲点标记位置
         const c = b.getCenter();
@@ -316,6 +318,13 @@ function paint(geojson: any) {
         highlightMarker = L.circleMarker([c.lat, c.lng], {
           radius: 7, color: '#f59e0b', weight: 2.5, fillColor: '#f59e0b', fillOpacity: 0.9,
         }).addTo(map!);
+      } else if (props.center) {
+        // 跨日期线国家（bounds 横跨全球）或 geojson 缺失的领地：按国家中心坐标定位
+        highlightMarker?.remove();
+        highlightMarker = L.circleMarker([props.center[0], props.center[1]], {
+          radius: 9, color: '#f59e0b', weight: 3, fillColor: '#f59e0b', fillOpacity: 0.9,
+        }).addTo(map!);
+        map?.setView([props.center[0], props.center[1]], 5);
       }
     }
   } else {
