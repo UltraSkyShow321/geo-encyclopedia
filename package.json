@@ -12,6 +12,7 @@
     "icons": "node tools/make-icons.mjs"
   },
   "devDependencies": {
-    "@resvg/resvg-js": "^2.6.2"
+    "@resvg/resvg-js": "^2.6.2",
+    "qrcode": "^1.5.4"
   }
 }

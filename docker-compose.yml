@@ -13,6 +13,7 @@ services:
       - ./data:/app/data
       - ./content:/app/content
       - ./.env:/app/.env:ro
+      - ./downloads:/app/downloads:ro
 
   # 备用外网链路: Cloudflare Tunnel（需要 .env 里配置 TUNNEL_TOKEN）
   # 用法: docker compose --profile tunnel up -d

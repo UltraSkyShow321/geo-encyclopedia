@@ -86,8 +86,14 @@ app.get('/api/health', () => ({ ok: true }));
 
 if (fs.existsSync(webDist)) {
   app.register(fastifyStatic, { root: webDist, wildcard: false });
+  // 安装包下载目录（容器挂载 /app/downloads；本地开发为项目根 downloads）
+  const dlDir = [process.env.DOWNLOADS_DIR, path.join(process.cwd(), 'downloads'), '/app/downloads'].find((p) => p && fs.existsSync(p));
+  if (dlDir) {
+    app.register(fastifyStatic, { root: dlDir, prefix: '/dl/', wildcard: true, decorateReply: false });
+    app.log.info(`downloads served at /dl/ from ${dlDir}`);
+  }
   app.setNotFoundHandler((req, reply) => {
-    if (req.url.startsWith('/api/')) {
+    if (req.url.startsWith('/api/') || req.url.startsWith('/dl/')) {
       reply.code(404).send({ error: 'not found' });
       return;
     }
